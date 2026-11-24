@@ -1,9 +1,11 @@
+import { useI18n } from "../../i18n";
 import { Html, Line } from "@react-three/drei";
 import { layout, useStore } from "../../state/store";
 import { FLOOR_ELEV } from "./Mezzanine";
 
 /** Zone 地面霓虹邊框 + 浮動標籤；BLOCKED 紅、CONGESTED 橘 */
 export function ZoneOverlay({ labels = true }: { labels?: boolean }) {
+  const { tr, label } = useI18n();
   const zones = useStore((s) => s.twin.zones);
   const focus = useStore((s) => s.focus);
   const af = useStore((s) => s.activeFloor);
@@ -33,7 +35,7 @@ export function ZoneOverlay({ labels = true }: { labels?: boolean }) {
             {labels && (
               <Html position={[lx, ey + 1.2, lz]} zIndexRange={[30, 20]}>
                 <div className="zone-lbl" style={{ color, borderColor: color }} onClick={() => focus([cx, ey, cz])}>
-                  {z.id === "M" ? "ZONE M — F2 MEZZANINE" : `${z.name.toUpperCase()} — F1`}{st === "CONGESTED" ? " ⚠" : st === "BLOCKED" ? " ⛔" : ""}
+                  {z.id === "M" ? tr("ZONE M — F2 MEZZANINE") : tr("{0} — F1", label(z.name, z.name.toUpperCase()))}{st === "CONGESTED" ? " ⚠" : st === "BLOCKED" ? " ⛔" : ""}
                 </div>
               </Html>
             )}
@@ -43,7 +45,7 @@ export function ZoneOverlay({ labels = true }: { labels?: boolean }) {
       {/* Inbound / Outbound 門牌 */}
       {labels && layout.docks.filter((d, i) => i % 2 === 0).map((d) => (
         <Html key={d.id} position={[(d.rect[0] + d.rect[2]) / 2 + 6, 6.2, 1]} zIndexRange={[30, 20]} style={{ pointerEvents: "none" }}>
-          <div className="sign-lbl" style={{ color: d.kind === "INBOUND" ? "#86efac" : "#67e8f9", borderColor: d.kind === "INBOUND" ? "#15803d" : "#0e7490" }}>{d.kind}</div>
+          <div className="sign-lbl" style={{ color: d.kind === "INBOUND" ? "#86efac" : "#67e8f9", borderColor: d.kind === "INBOUND" ? "#15803d" : "#0e7490" }}>{label(d.kind)}</div>
         </Html>
       ))}
     </group>

@@ -1,0 +1,48 @@
+{
+  "repository": "bluewms/waretwin",
+  "release": "model-assets-2026-11-24",
+  "models": [
+    {
+      "filename": "10-MR-F4-1000-C1(S).glb",
+      "asset": "model-01.glb",
+      "size": 58646984,
+      "sha256": "2ebb810cc285e5b9adb25ec025de3f1cc3504ed7b999cc538b8ef6c6407af93b"
+    },
+    {
+      "filename": "11-307302708 潜伏叉车MR-QF-1000LD-A1000kg差速SLAM款.glb",
+      "asset": "model-02.glb",
+      "size": 8260652,
+      "sha256": "24f3911aea0969cc344471ca329063d7528a9dee28802ba75988080bc1d7a8d2"
+    },
+    {
+      "filename": "AMR 自动充电桩（SCS-C24100D SCS-C4850D SCS-C48100D） v4.6 外观版本.glb",
+      "asset": "model-03.glb",
+      "size": 50271040,
+      "sha256": "1487f10a786511eac4b3748c59d6bba51bd88f39caa98c8c0a059bec8ea64780"
+    },
+    {
+      "filename": "SFL-CBD20.glb",
+      "asset": "model-04.glb",
+      "size": 5521048,
+      "sha256": "20be710704acf4b4aa41ae09a67cb247458be4a968c401884475dd53573f4af3"
+    },
+    {
+      "filename": "SFL-CDD14-3M.glb",
+      "asset": "model-05.glb",
+      "size": 41488300,
+      "sha256": "20a26acf44701a34d7cc728793fc46b47330f8029d2249ea9fc5aa2f8e0c7062"
+    },
+    {
+      "filename": "SJV-CSK06 -SR  3D外观图.glb",
+      "asset": "model-06.glb",
+      "size": 83326308,
+      "sha256": "042c8ad73f3954a2b38f05418f05abdaa8bb7005d8754e578cd007429e119273"
+    },
+    {
+      "filename": "SPK-M50J-HL  20251211 (2).glb",
+      "asset": "model-07.glb",
+      "size": 163378236,
+      "sha256": "5c06912060aa4a4d23b5f476f2dd5c0b322997edf7c09051147b53851220f51e"
+    }
+  ]
+}

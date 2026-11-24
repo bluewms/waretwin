@@ -12,6 +12,9 @@ backend/.env
 *.db-wal
 *.db-shm
 
+# Model binaries live in GitHub Release assets; see glb/manifest.json.
+/glb/*.glb
+
 # local working files (kept out of the repo)
 *.docx
 /*.txt

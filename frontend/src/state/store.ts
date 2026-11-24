@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import layoutJson from "../layout/warehouse_layout.json";
 import type { WarehouseLayout, LayoutLocation } from "../layout/types";
+import type { Message } from "../i18n/locale";
 import type { TwinState, RobotId, HeatmapLayer } from "../schema/twin_state";
 
 export type ViewTab = "3D" | "MAP" | "TRAFFIC" | "HEATMAP";
@@ -60,8 +61,8 @@ interface Store {
   modal: null | "audit" | "tasks" | "robot" | "fleet";
   setModal: (m: null | "audit" | "tasks" | "robot" | "fleet") => void;
   /** 短暫提示（例如後端回 RATE_LIMITED）；null = 不顯示 */
-  notice: { text: string; kind: "warn" | "info"; until: number } | null;
-  setNotice: (text: string | null, kind?: "warn" | "info") => void;
+  notice: { message: Message; detail: string; kind: "warn" | "info"; until: number } | null;
+  setNotice: (message: Message | null, detail?: string, kind?: "warn" | "info") => void;
   /** 3D / Map 顯示的樓層："all" = 疊起來全顯示 */
   /** "exploded" = 二樓視覺上抬高 5 m（僅 render transform，不動模擬座標） */
   activeFloor: "all" | "exploded" | number;
@@ -93,7 +94,7 @@ export const useStore = create<Store>((set) => ({
   modal: null,
   setModal: (modal) => set({ modal }),
   notice: null,
-  setNotice: (text, kind = "warn") => set({ notice: text ? { text, kind, until: Date.now() + 4000 } : null }),
+  setNotice: (message, detail = "", kind = "warn") => set({ notice: message ? { message, detail, kind, until: Date.now() + 4000 } : null }),
   activeFloor: "all",
   setActiveFloor: (activeFloor) => set({ activeFloor }),
   selectedLift: null,

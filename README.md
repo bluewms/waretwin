@@ -1,134 +1,63 @@
-<div align="center">
+# BlueWMS WareTwin
 
-<img src="docs/logo.svg" width="96" alt="WareTwin logo" />
+BlueWMS 的仓库三维实况、历史回放和方案仿真项目。服务于自动化仓库实施和现场运维，涵盖多种 AGV／AMR 车型、不同货架以及没有货架的项目。首版目标是用一个真实站点验证布局、GLB 模型、车辆状态和 BlueWMS 单据之间的关联。
 
-# WareTwin
+## 开发基线
 
-**AI Autonomous Warehouse Digital Twin**
+仓库源自 WareTwin 的客户布局分支。以 `13201209edc380f3bf4f8e1d495d0f156a24f182` 作为 BlueWMS 开发基线，复用布局编辑、DXF／PDF 底图导入、布局版本与发布，以及 React 18、TypeScript、Three.js／React Three Fiber 和 FastAPI 的基础结构。以下开发方向及验收项属于计划。[来源提交](https://github.com/ltinphan/waretwin/commit/13201209edc380f3bf4f8e1d495d0f156a24f182) · [原项目说明](https://github.com/WayneChou-bot/WareTwin)
 
-*A browser-native digital twin for simulating autonomous robot fleets, operational events, AI-driven decisions and what-if scenarios — before real-world deployment.*
+初期作为独立 React 页面，从 BlueWMS／Odoo 菜单打开。项目部署使用 BlueWMS 自己的服务地址、认证、数据目录和环境配置。源码包含上游演示及分支部署配置，启动试点时以经过核对的本地配置为准。
 
-[![CI](https://img.shields.io/github/actions/workflow/status/WayneChou-bot/WareTwin/ci.yml?branch=main&label=CI&logo=github)](../../actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](LICENSE)
-[![React](https://img.shields.io/badge/React-18-61dafb?logo=react&logoColor=white)](https://react.dev)
-[![Three.js](https://img.shields.io/badge/Three.js-R3F-000?logo=three.js&logoColor=white)](https://docs.pmnd.rs/react-three-fiber)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![Python](https://img.shields.io/badge/Python-3.11-3776ab?logo=python&logoColor=white)](https://python.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)](https://typescriptlang.org)
+## 开发与模型文件
 
-[**Live demo**](https://ware-twin.vercel.app) · [Architecture](#-architecture) · [繁體中文](README.zh-TW.md)
+统一在 `bluewms/waretwin` 仓库维护前后端、简体中文／英文界面和 GLB 模型。原 `3Dware` 目录的语言切换及中文词库已整合；界面会读取浏览器语言，并保存手动选择。
 
-<img src="docs/demo.gif" width="880" alt="WareTwin demo: 20 AMRs running, compound failure injected, VLM detects a human, Copilot explains the throughput drop" />
+本地开发使用 Node.js 20 和 Python 3.11。后端环境与启动方式见 [backend/README.md](backend/README.md)，前端在 `frontend/` 执行 `npm ci` 后使用 `npm run dev`；验证使用 `npm test` 和 `npm run build`。前端测试会调用后端 Python 环境，优先使用 `backend/.venv/`，也可通过 `PYTHON` 环境变量指定。
 
-</div>
+`glb/` 中的 7 个模型保存在本仓库的 [模型资产 Release](https://github.com/bluewms/waretwin/releases/tag/model-assets-2026-11-24)，文件名、大小和 SHA-256 记录在 [glb/manifest.json](glb/manifest.json)。克隆后在仓库根目录执行 `python3 scripts/fetch_models.py`，脚本会下载模型并校验完整性；已有模型执行 `python3 scripts/fetch_models.py --check` 检查，无需重复下载。本地数据库、环境配置和工作台访问令牌不纳入版本管理。
 
----
+## 开发方向
 
-## ✨ What it does
+### 一仓一布局，货架按项目选配
 
-WareTwin is a real-time **3D digital twin** of a 100 × 70 m warehouse with **20 autonomous mobile robots**, four zones, conveyors, packing stations, chargers and virtual CCTV. A deterministic simulation engine drives every robot through a full state machine (pick → transport → deliver, low-battery hand-off, obstacle re-planning); a Fleet Manager assigns tasks with **explainable scoring**; an AI layer watches the same state to **explain**, **perceive** and **predict**.
+- 每个站点独立维护带版本的布局。用 DXF／PDF 底图校准米制尺寸、原点、轴向和楼层，再配置区域、站点、车道、障碍与可选货架。
+- 无货架项目允许 `racks: []`，可展示地面、生产线、工作站、交接点、暂存区与车辆。任务类型由现场站点和作业流程决定。
+- 布局中的业务库位、工位和设备使用稳定标识。库位可以关联 BlueWMS 的库存记录，现场站点可以关联 WCS 或调度系统的点位。
 
-It runs on a laptop with an integrated GPU — no RTX, no ROS, no cloud required.
+### 用自己的 GLB 展示车型和设备
 
-| | |
+- 建立模型配置。按车型、货架类型或设备类型指定 GLB、单位、朝向、落地原点和偏移。一个车型可以出现在多个项目，同一现场也可以混用多种车型。
+- 布局实例提供模型引用和摆放位置。RCS 实况通过车辆编号更新对应实例。用 SFL-CBD20 叉车 GLB 作为首个已准备好的模型样本。
+- 设备外形来自 GLB。调度或仿真使用明确配置的占地尺寸、通行约束、站点和路径。私有客户模型从该站点的资产目录读取。
+- 模型缺失时显示占位外形，保留设备编号、位置和任务信息。首版覆盖车辆、货架和站点或设备模型的可配置加载。
+
+### 实况、回放和仿真共用同一场景
+
+| 模式 | 数据来源与行为 |
 |---|---|
-| 🏭 **3D Digital Twin** | React Three Fiber scene from a single `warehouse_layout.json`: instanced racks, AMRs with live A* paths, zone overlays, virtual CCTV, map / traffic / heatmap views. Quality tiers for integrated GPUs. |
-| 🤖 **Robot fleet simulation** | Deterministic 100 ms tick engine: FSM, 8-direction A* on a traffic-weighted grid, cell reservation with deadlock breakers, battery model with charger scheduling, conveyors that actually bottleneck stations. |
-| 🧠 **Explainable Fleet Manager** | Every assignment shows the selected robot's reasons (distance, battery, workload, congestion, health) and why each rejected candidate lost. |
-| ⚡ **Scenario injection** | Robot failure, low battery, conveyor stop, human intrusion (zone block + re-route), traffic congestion, camera outage, demand burst — one click each, all reversible. |
-| 🔮 **What-if simulation** | Clone the live twin, inject, run 1–10 min, compare 12 metrics against a baseline with the same random seed. The live system is never touched. |
-| 💬 **AI Operations Copilot** | Ask "Why is throughput dropping?" — the answer is grounded in the live state and cites robots / tasks / events you can click. LLM optional (see [AI modes](#-ai-modes)). |
-| 🏢 **Multi-floor & freight lifts** | A steel-framed mezzanine (thick slab, beams, columns, railings) with its own racks, zone, cameras and nav grid. Two freight lifts run a full backend-authoritative state machine — reservation, FIFO queues, sliding gates with safety interlocks (never moves with a gate open), smoothstep platform motion the robot rides on, cooldown, faults with automatic re-routing to the other lift. Robots go Queue → Board → Ride → Alight → Re-plan; floors change only inside that flow. |
-| 📡 **On-robot perception** | Each AMR carries a virtual 270° / 4 m LiDAR: it sees other robots and people (with line-of-sight occlusion by racks), slows down and holds distance instead of relying on grid reservations alone, and reports `CLEAR / SLOWING / STOPPED` plus the obstacles it sees — visualised as a sensor fan in 3D. |
-| 👁️ **VLM perception** | Send a virtual CCTV frame to a vision model → `{event, severity, bbox, confidence}` drawn on the feed. |
-| 🔌 **Real-time sync** | FastAPI + WebSocket: one `FULL` state, then per-tick `PATCH` diffs (~12 KB/s). If the backend is unreachable the browser falls back to a built-in TypeScript engine and keeps running. |
-| 📜 **Audit log & KPI** | Every event persisted to SQLite with filters and CSV/JSON export; throughput, utilization, on-time rate, wait time, congestion, energy. |
+| **实况** | BlueWMS 只读提供库存、任务及单据关联。使用现场 RCS API 或 VDA 5050 只读遥测更新车况。连接中断时显示最后确认状态及时间。 |
+| **历史回放** | 按关联的布局版本重放已保存的 WCS 事件和车辆位姿。界面区分最后已知位置、实测轨迹与计划路线。 |
+| **方案仿真** | 用 WareTwin 引擎对指定布局运行独立仿真，后续按现场数据校准节拍、站点容量和车队参数。 |
 
-## 🚀 Quick start
+BlueWMS 负责库存与业务任务，现场调度系统负责车辆指令和交通协调。实况页面通过经授权的数据接口读取记录。调度状态、车辆坐标和 WMS 库存记录分别绑定到各自的来源。
 
-**Prerequisites:** Node 18+, Python 3.11 (conda or venv).
+## 首版开发与验收
 
-```bash
-git clone https://github.com/WayneChou-bot/WareTwin.git && cd WareTwin
+1. **模型驱动场景。** 建立一个无货架布局和一个普通货架布局。通过同一套配置加载精确 GLB，确认两种车型或设备可以共存。检查米制尺寸、朝向和落地位置。
+2. **真实图纸和库位校准。** 用一个试点仓的 DXF、PDF 或已有布局数据完成比例和站点校验。校准后能通过业务编号定位对应站点或库位。
+3. **只读实况。** 将一台车的真实位置、状态和时间戳显示在仓库视图，关联一条 WCS 搬运任务和对应单据。验证来源暂缺、迟到报文和连接中断时的显示。
+4. **历史回放。** 回放同一条任务至少包含下发、执行及终态。对连续轨迹有明确的采样来源。
+5. **仿真验证。** 在同一站点布局上跑一条模拟搬运路线，对照已知作业耗时，积累吞吐和拥堵分析所需的基线。
 
-# backend
-cd backend
-conda create -n waretwin python=3.11 -y && conda activate waretwin   # or: python -m venv .venv
-pip install -r requirements-dev.txt   # runtime + pytest/httpx (requirements.lock = fully pinned, used by Render/Docker)
-uvicorn app.main:app --reload --port 8000
+## 工作区与代码入口
 
-# frontend (new terminal)
-cd frontend
-npm install
-npm run dev          # → http://localhost:5173
-```
-
-The top bar shows a blue **BACKEND** badge when the browser is connected to the Python engine, or an orange **LOCAL** badge when it is running the built-in fallback engine. On Windows, `dev.ps1` starts both.
-
-Try injecting scenarios from the ⚡ panel — from normal operation to a compound failure handled end-to-end.
-
-## 🧩 AI modes
-
-The AI layer never needs a key to run. Set `OPENAI_API_KEY` in `backend/.env` (see `.env.example`) to switch from demo mode to live models:
-
-| | Demo mode (default, no key) | LLM mode |
-|---|---|---|
-| Copilot | Rule-based analysis of the live state (throughput, congestion, assignment, failure risk, improvement), with citations | `gpt-4o-mini`, JSON-schema output, citations restricted to ids present in the snapshot |
-| VLM | Simulated perception from ground truth (`sim` tag) | Vision model on the actual CCTV frame |
-| What-if recommendation | Templated two-liner from the deltas | LLM two-liner |
-
-The public demo runs in demo mode on purpose: it is fully functional and cannot run up an API bill.
-
-## 🏗 Architecture
-
-<img src="docs/architecture.svg" width="100%" alt="Architecture: browser (R3F twin, UI, store, local fallback engine) ↔ WebSocket ↔ FastAPI (SimEngine, What-if, AI, Twin State, SQLite)" />
-
-The **Twin State** is the single contract — `frontend/src/schema/twin_state.ts` ≡ `backend/app/schema.py` (Pydantic). Both engines share the same PRNG bit-for-bit, so the task stream and assignments are identical; What-if runs on the backend by deep-cloning the engine (state + FSM runtime + RNG).
-
-```
-WareTwin/
-├── frontend/        React 18 · TypeScript · Vite · React Three Fiber · zustand
-│   └── src/simulation/   TypeScript engine (local fallback)
-├── backend/         FastAPI · Pydantic v2 · asyncio · SQLite
-│   └── app/sim/          Python engine · A* · What-if
-│   └── app/ai/           Copilot · VLM
-├── docs/            schema · layout generator
-└── dev.ps1
-```
-
-## 🧪 Tests
-
-```bash
-cd backend && python -m pytest -q      # 50 tests: PRNG parity, A*, 20-min stress (no collisions < 0.5 m), determinism, lifts,
-                                        #           low battery, intrusion, gridlock-free compound failure, WS/REST, AI, What-if
-cd frontend && npm test                 # 32 tests: same engine contract in TypeScript
-```
-
-## ☁️ Deployment
-
-Frontend is static (Vercel / GitHub Pages); backend is a long-running WebSocket service (Render / Fly.io / any container — not serverless). `backend/render.yaml`, `Dockerfile`, `fly.toml` and `frontend/vercel.json` are included; set `VITE_WS_URL=wss://…/ws` on the frontend and `TWIN_CORS_ORIGINS` on the backend. Details in [`frontend/README.md`](frontend/README.md#部署).
-
-## 🔒 Running it in public
-
-The hosted demo is deliberately a **single shared simulation** — every visitor sees the same warehouse and can inject the same failures, which is the point of the demo. To keep that safe the backend ships with a small guard layer (`backend/app/guard.py`):
-
-| Guard | Default |
+| 目录 | 用途 |
 |---|---|
-| Input limits | `TASK_BURST.count ≤ 30`, injections ≤ 10 min, What-if ≤ 8 injections / 10 min, Copilot question ≤ 500 chars, VLM frame ≤ 400 KB; task locations must exist, match the task type and never be a charger (`sim/rules.py`, mirrored in TS) |
-| Rate limit (per client IP, in-memory, GC'd) | mutations 20/min · Copilot & VLM 10/min · What-if 4/min · WebSocket messages 120/min → `429` / `RATE_LIMITED`. Client IP is the last hop of `X-Forwarded-For` (`TWIN_TRUSTED_PROXIES`), so it cannot be spoofed |
-| Origin check | when `TWIN_CORS_ORIGINS` is set, WebSocket and POST must carry an allowed `Origin`. Production allows only `https://ware-twin.vercel.app`; Vercel previews are off unless you add a `TWIN_CORS_REGEX` pinned to your own scope slug (`TWIN_ALLOW_NO_ORIGIN=1` re-enables curl) |
-| Body size | REST 512 KB counted on the ASGI stream (chunked / forged `Content-Length` included), WebSocket message 64 KB (UTF-8 bytes) |
-| Health | `/api/health` returns `503` when the simulation task died or has not advanced for `TWIN_HEALTH_STALL_S` seconds, so Render restarts it |
+| [frontend](frontend/) | 布局编辑、Three.js 场景、实时状态消费和浏览器仿真。 |
+| [backend](backend/) | FastAPI、布局导入与验证、WebSocket 和后端仿真。 |
+| [docs](docs/) | WareTwin 原有架构与项目文档。 |
+| [glb](glb/) | 车型及设备模型清单，GLB 原文件由 Release 附件下载。 |
 
-Reads (`/api/state`, `/api/health`, …) are never limited. `TWIN_RATE_LIMIT=0` switches the limiter off for local development. The UI is built for desktop (best ≥ 1280 px, usable from 1024 px); narrower screens get a notice instead of an unreadable 0.25× layout, and the simulation is not started behind it. Audit history lives in SQLite on the instance and resets when the free-tier instance is replaced.
+在 Odoo 工作区中，详细方案位于 `../docs/BlueWMS-Three.js-仓库实况与回放开发计划.md` 和 `../docs/BlueWMS-VDA5050-车辆状态接入开发计划.md`。源码归属、项目部署说明和三维实施信息以本项目后续维护的文档为准。
 
-## 📚 Data & acknowledgements
-
-- The warehouse layout is **synthetic**, generated by `docs/layout/gen_layout.py`; no third-party map or open dataset is used.
-- Fonts: [Inter](https://rsms.me/inter/) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/) via Google Fonts (SIL OFL 1.1).
-- Built with [Three.js](https://threejs.org) · [React Three Fiber](https://docs.pmnd.rs/react-three-fiber) · [drei](https://github.com/pmndrs/drei) · [zustand](https://github.com/pmndrs/zustand) · [FastAPI](https://fastapi.tiangolo.com) · [Pydantic](https://docs.pydantic.dev) · [OpenAI Python SDK](https://github.com/openai/openai-python) — all MIT/BSD/Apache licensed.
-- The reference imagery used during design (NVIDIA Isaac Sim screenshots, AMR product photos) is not included in this repository.
-
-## 📄 License
-
-[MIT](LICENSE) © 2026 Wayne Chou
+保留 WareTwin 原作者 Wayne Chou 的版权声明与 MIT 许可。[LICENSE](LICENSE)
