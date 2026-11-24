@@ -1,3 +1,4 @@
+import { useI18n } from "../../i18n";
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
@@ -107,6 +108,7 @@ function Conveyor({ c }: { c: LayoutConveyor }) {
 
 /** 工作站、充電樁、停車區、限制區、人行道、感測器 */
 export function Fixtures({ lite = false }: { lite?: boolean }) {
+  const { label } = useI18n();
   const robots = useStore((s) => s.twin.robots);
   return (
     <group>
@@ -136,7 +138,7 @@ export function Fixtures({ lite = false }: { lite?: boolean }) {
               </group>
             ))}
             {!lite && <Html position={[0, 0.1, d / 2 + 1]} center zIndexRange={[2, 0]} style={{ pointerEvents: "none" }}>
-              <div className="sign-lbl" style={{ color: s.kind === "PACKING" ? "#93c5fd" : "#d8b4fe", borderColor: s.kind === "PACKING" ? "#1d4ed8" : "#7e22ce" }}>{s.kind}</div>
+              <div className="sign-lbl" style={{ color: s.kind === "PACKING" ? "#93c5fd" : "#d8b4fe", borderColor: s.kind === "PACKING" ? "#1d4ed8" : "#7e22ce" }}>{label(s.kind)}</div>
             </Html>}
           </group>
         );

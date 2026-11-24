@@ -1,8 +1,10 @@
+import { useI18n } from "../../i18n";
 import { useMemo } from "react";
 import { STATUS_COLOR, tickToClock, useStore } from "../../state/store";
 import { Panel } from "../ui/primitives";
 
 export function TaskQueuePanel() {
+  const { tr, label } = useI18n();
   const tasks = useStore((s) => s.twin.tasks);
   const selected = useStore((s) => s.selectedRobot);
   const select = useStore((s) => s.select);
@@ -14,22 +16,24 @@ export function TaskQueuePanel() {
   const rows = [...all.filter((t) => t.status === "IN_PROGRESS").slice(0, 3), ...all.filter((t) => t.status !== "IN_PROGRESS").slice(0, 2)];
   const pretty = (id: string) => {
     const l = locs[id]; if (!l) return id;
-    if (l.kind === "SHELF") return `Shelf ${id.replace("SHELF-", "")}`;
-    if (l.kind === "PACKING") return "Packing";
-    if (l.kind === "CHARGING") return "Charger";
-    if (l.kind === "SORTING") return "Sorting";
-    return id.replace("-", " ").replace("INBOUND", "Inbound").replace("OUTBOUND", "Outbound");
+    if (l.kind === "SHELF") return tr("Shelf {0}", id.replace("SHELF-", ""));
+    if (l.kind === "PACKING") return tr("Packing");
+    if (l.kind === "CHARGING") return tr("Charger");
+    if (l.kind === "SORTING") return tr("Sorting");
+    if (id.startsWith("INBOUND-")) return tr("Inbound {0}", id.slice(8));
+    if (id.startsWith("OUTBOUND-")) return tr("Outbound {0}", id.slice(9));
+    return id.replace("-", " ");
   };
   return (
-    <Panel title="Task Queue" action={<button className="link" onClick={() => setModal("tasks")}>View All Tasks →</button>}>
+    <Panel title={tr("Task Queue")} action={<button className="link" onClick={() => setModal("tasks")}>{tr("View All Tasks →")}</button>}>
       <div className="table-wrap"><table className="dt">
-        <thead><tr><th>Task ID</th><th>Type</th><th>From</th><th>To</th><th>Robot</th><th>Status</th></tr></thead>
+        <thead><tr><th>{tr("Task ID")}</th><th>{tr("Type")}</th><th>{tr("From")}</th><th>{tr("To")}</th><th>{tr("Robot")}</th><th>{tr("Status")}</th></tr></thead>
         <tbody>
           {rows.map((t) => (
             <tr key={t.id} className={t.assigned_robot && t.assigned_robot === selected ? "sel" : ""} onClick={() => t.assigned_robot && select(t.assigned_robot)}>
-              <td>#{t.id}</td><td>{t.type[0] + t.type.slice(1).toLowerCase()}</td><td>{pretty(t.source)}</td><td>{pretty(t.destination)}</td>
+              <td>#{t.id}</td><td>{label(t.type, t.type[0] + t.type.slice(1).toLowerCase())}</td><td>{pretty(t.source)}</td><td>{pretty(t.destination)}</td>
               <td>{t.assigned_robot ?? "—"}</td>
-              <td className={t.status === "IN_PROGRESS" ? "st-inprog" : t.status === "WAITING" ? "st-wait" : "st-fail"}>{t.status === "IN_PROGRESS" ? "In Progress" : t.status[0] + t.status.slice(1).toLowerCase()}</td>
+              <td className={t.status === "IN_PROGRESS" ? "st-inprog" : t.status === "WAITING" ? "st-wait" : "st-fail"}>{label(t.status, t.status === "IN_PROGRESS" ? "In Progress" : t.status[0] + t.status.slice(1).toLowerCase())}</td>
             </tr>
           ))}
         </tbody>
@@ -39,6 +43,7 @@ export function TaskQueuePanel() {
 }
 
 export function ThroughputPanel() {
+  const { tr } = useI18n();
   const op = useStore((s) => s.twin.kpi.operation);
   const series = useStore((s) => s.twin.kpi.throughput_series);
   const W = 300, H = 150, px = 34, py = 10, pb = 24;
@@ -57,8 +62,8 @@ export function ThroughputPanel() {
   const ySteps = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(maxY * f));
   const xLabels = [0, 0.25, 0.5, 0.75, 1].map((f) => { const t = firstTick + f * (n - 1) * 600; return { x: sx(t), label: tickToClock(t) }; });
   return (
-    <Panel title="Throughput" sub="(Today)">
-      <div className="legend"><span><i style={{ background: "#22c55e" }} />Completed</span><span><i style={{ background: "#3b82f6", borderTop: "2px dashed #3b82f6", height: 0 }} />Target</span><span className="big"><b>{op.completed_today}</b> / {op.completed_target}</span></div>
+    <Panel title={tr("Throughput")} sub={tr("(Today)")}>
+      <div className="legend"><span><i style={{ background: "#22c55e" }} />{tr("Completed")}</span><span><i style={{ background: "#3b82f6", borderTop: "2px dashed #3b82f6", height: 0 }} />{tr("Target")}</span><span className="big"><b>{op.completed_today}</b> / {op.completed_target}</span></div>
       <div className="chart-wrap" style={{ marginTop: 4 }}>
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" preserveAspectRatio="none" style={{ display: "block" }}>
           <defs><linearGradient id="tpfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#22c55e" stopOpacity=".28" /><stop offset="1" stopColor="#22c55e" stopOpacity="0" /></linearGradient></defs>
@@ -77,6 +82,7 @@ export function ThroughputPanel() {
 }
 
 export function RobotStatusPanel() {
+  const { tr, label } = useI18n();
   const f = useStore((s) => s.twin.kpi.fleet);
   const parts = useMemo(() => [
     { k: "Active", v: f.active, c: STATUS_COLOR.ACTIVE }, { k: "Charging", v: f.charging, c: STATUS_COLOR.CHARGING },
@@ -85,7 +91,7 @@ export function RobotStatusPanel() {
   const R = 52, r = 34, C = 2 * Math.PI * R;
   let off = 0;
   return (
-    <Panel title="Robot Status">
+    <Panel title={tr("Robot Status")}>
       <div className="donut-wrap">
         <svg viewBox="0 0 130 130">
           <circle cx="65" cy="65" r={R} fill="none" stroke="#1e293b" strokeWidth={R - r} />
@@ -93,10 +99,10 @@ export function RobotStatusPanel() {
             const len = (p.v / f.total) * C; const el = <circle key={p.k} cx="65" cy="65" r={R} fill="none" stroke={p.c} strokeWidth={R - r} strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-off} transform="rotate(-90 65 65)" />; off += len; return el;
           })}
           <text x="65" y="62" textAnchor="middle" fill="#e5eaf3" fontSize="22" fontWeight="700" fontFamily="JetBrains Mono, monospace">{f.total}</text>
-          <text x="65" y="78" textAnchor="middle" fill="#8b98ad" fontSize="10">Total</text>
+          <text x="65" y="78" textAnchor="middle" fill="#8b98ad" fontSize="10">{tr("Total")}</text>
         </svg>
         <div className="donut-legend">
-          {parts.map((p) => <div className="row" key={p.k}><span className="dot" style={{ background: p.c }} /><span>{p.k}</span><span className="n">{p.v} ({((p.v / f.total) * 100).toFixed(1)}%)</span></div>)}
+          {parts.map((p) => <div className="row" key={p.k}><span className="dot" style={{ background: p.c }} /><span>{label(p.k)}</span><span className="n">{p.v} ({((p.v / f.total) * 100).toFixed(1)}%)</span></div>)}
         </div>
       </div>
     </Panel>

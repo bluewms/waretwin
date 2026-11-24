@@ -1,3 +1,4 @@
+import { useI18n } from "../../i18n";
 import { useMemo } from "react";
 import { STATUS_COLOR, layout, useStore } from "../../state/store";
 import { buildNavGrid } from "../../layout/navgrid";
@@ -5,6 +6,7 @@ import { getEngine } from "../../simulation/runner";
 
 /** 俯視 2D 地圖：導航網格障礙、Zone、輸送帶、機器人。TRAFFIC / HEATMAP 模式疊上熱區。 */
 export function MapView2D({ mode }: { mode: "MAP" | "TRAFFIC" | "HEATMAP" }) {
+  const { tr, label } = useI18n();
   const allRobots = useStore((s) => s.twin.robots);
   const activeFloorSel = useStore((s) => s.activeFloor);
   const mapFloor = typeof activeFloorSel === "number" ? activeFloorSel : 1;   // 2D 圖一次畫一層；All/Exploded 時畫一樓
@@ -81,10 +83,10 @@ export function MapView2D({ mode }: { mode: "MAP" | "TRAFFIC" | "HEATMAP" }) {
           {Array.from(heat.v).map((s, i) => { const t = s / heat.max; if (t < 0.08) return null; return <rect key={i} x={(i % heat.cols) * heat.cs} y={Math.floor(i / heat.cols) * heat.cs} width={heat.cs} height={heat.cs} fill={heatColor(t)} opacity={Math.min(0.85, t + 0.15)} />; })}
         </g>
       )}
-      {mapFloor !== 1 && <text x={1.5} y={-3.5} fill="#14b8a6" fontSize="2.6" fontWeight="700">FLOOR {mapFloor} · MEZZANINE</text>}
+      {mapFloor !== 1 && <text x={1.5} y={-3.5} fill="#14b8a6" fontSize="2.6" fontWeight="700">{tr("FLOOR")} {mapFloor} {tr("· MEZZANINE")}</text>}
       {layout.zones.filter((z) => (z.floor ?? 1) === mapFloor).map((z) => {
         const st = zones[z.id]?.status; const col = st === "BLOCKED" ? "#ef4444" : st === "CONGESTED" ? "#f97316" : z.color;
-        return <g key={z.id}><polygon points={z.polygon.map((p) => p.join(",")).join(" ")} fill={col} fillOpacity="0.05" stroke={col} strokeWidth="0.35" /><text x={z.polygon[0][0] + 1} y={z.polygon[0][1] - 1} fill={col} fontSize="2.6" fontWeight="700">{z.name.toUpperCase()}</text></g>;
+        return <g key={z.id}><polygon points={z.polygon.map((p) => p.join(",")).join(" ")} fill={col} fillOpacity="0.05" stroke={col} strokeWidth="0.35" /><text x={z.polygon[0][0] + 1} y={z.polygon[0][1] - 1} fill={col} fontSize="2.6" fontWeight="700">{label(z.name, z.name.toUpperCase())}</text></g>;
       })}
       {mapFloor !== 1 && layout.floors.filter((f) => f.id === mapFloor && f.footprint).map((f) => (
         <polygon key={f.id} points={f.footprint!.map((p) => p.join(",")).join(" ")} fill="#14b8a6" fillOpacity="0.03" stroke="#14b8a6" strokeWidth="0.3" strokeDasharray="1.5 0.8" />
@@ -114,8 +116,8 @@ export function MapView2D({ mode }: { mode: "MAP" | "TRAFFIC" | "HEATMAP" }) {
       {heat && (
         <g transform={`translate(${W - 22}, ${D - 3})`}>
           {Array.from({ length: 20 }, (_, i) => <rect key={i} x={i} y="0" width="1" height="1.2" fill={heatColor(i / 19)} />)}
-          <text x="0" y="-0.6" fill="#8b98ad" fontSize="1.6">LOW</text><text x="20" y="-0.6" fill="#8b98ad" fontSize="1.6" textAnchor="end">HIGH</text>
-          <text x="20" y="-3" fill="#cbd5e1" fontSize="1.7" textAnchor="end" fontWeight="600">{mode === "TRAFFIC" ? "LIVE ROBOT DENSITY" : "ACCUMULATED TRAFFIC"}</text>
+          <text x="0" y="-0.6" fill="#8b98ad" fontSize="1.6">{tr("LOW")}</text><text x="20" y="-0.6" fill="#8b98ad" fontSize="1.6" textAnchor="end">{tr("HIGH")}</text>
+          <text x="20" y="-3" fill="#cbd5e1" fontSize="1.7" textAnchor="end" fontWeight="600">{mode === "TRAFFIC" ? tr("LIVE ROBOT DENSITY") : tr("ACCUMULATED TRAFFIC")}</text>
         </g>
       )}
     </svg>

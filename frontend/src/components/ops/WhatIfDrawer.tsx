@@ -1,3 +1,4 @@
+import { useI18n } from "../../i18n";
 /**
  * What-if Simulation 抽屜（規格 1️⃣7️⃣ / Demo 08）
  *  ☑ 情境 → Duration → RUN → 後端複製 LIVE 引擎跑 Baseline 與 Scenario → 對照表 / 關鍵事件 / AI 建議
@@ -70,6 +71,7 @@ const INDUSTRY_SCENARIOS: Array<{ id: string; label: string; industry: string; d
 ];
 
 export function WhatIfDrawer() {
+  const { tr, label } = useI18n();
   const open = useStore((s) => s.drawer === "whatif");
   const setDrawer = useStore((s) => s.setDrawer);
   const source = useStore((s) => s.source);
@@ -109,46 +111,46 @@ export function WhatIfDrawer() {
   const pctText = (k: string, b: number, s: number) => (k === "on_time_rate" || k === "utilization" || k === "congestion_index") ? `${((s - b) * 100).toFixed(0) === "0" ? "±0" : ((s - b) * 100 > 0 ? "+" : "") + ((s - b) * 100).toFixed(0)} pt` : b ? `${s - b > 0 ? "+" : ""}${(((s - b) / b) * 100).toFixed(0)}%` : "";
 
   return (
-    <aside className="drawer wide" role="dialog" aria-label="What-if Simulation" ref={trap} tabIndex={-1}>
-      <header className="drawer-h"><span>What-if Simulation</span><button className="icon-btn" aria-label="Close" onClick={() => setDrawer(null)}>✕</button></header>
+    <aside className="drawer wide" role="dialog" aria-label={tr("What-if Simulation")} ref={trap} tabIndex={-1}>
+      <header className="drawer-h"><span>{tr("What-if Simulation")}</span><button className="icon-btn" aria-label={tr("Close")} onClick={() => setDrawer(null)}>✕</button></header>
       <div className="drawer-b">
-        <p className="hint">Two clones of the current twin state: Baseline runs as-is, Scenario runs with the injected failures. Same random seed, so the difference comes only from the failures. LIVE operational state is never changed (only an audit event records that the analysis ran).</p>
-        <h4 className="drawer-sub" style={{ marginTop: 0 }}>Scenario</h4>
+        <p className="hint">{tr("Two clones of the current twin state: Baseline runs as-is, Scenario runs with the injected failures. Same random seed, so the difference comes only from the failures. LIVE operational state is never changed (only an audit event records that the analysis ran).")}</p>
+        <h4 className="drawer-sub" style={{ marginTop: 0 }}>{tr("Scenario")}</h4>
         <div className="wi-list">
           {PRESETS.map((p) => (
             <label key={p.id} className={"wi-item" + (sel.has(p.id) ? " on" : "")}>
-              <input type="checkbox" checked={sel.has(p.id)} onChange={() => toggle(p.id)} /><span>{p.label}</span><span className="demo">Demo {p.demo}</span>
+              <input type="checkbox" checked={sel.has(p.id)} onChange={() => toggle(p.id)} /><span>{label(p.label)}</span><span className="demo">{tr("Demo")} {p.demo}</span>
             </label>
           ))}
         </div>
 
-        <h4 className="drawer-sub" style={{ marginTop: 12 }}>Industry Scenarios (CxO Presets)</h4>
+        <h4 className="drawer-sub" style={{ marginTop: 12 }}>{tr("Industry Scenarios (CxO Presets)")}</h4>
         <div className="wi-list">
           {INDUSTRY_SCENARIOS.map((s) => (
             <div key={s.id} className={"wi-item industry" + (industrySel === s.id ? " on" : "")} onClick={() => { setIndustrySel(s.id); setSel(new Set()); }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600 }}>{s.label}</div>
-                <div className="demo" style={{ display: "block", marginTop: 2 }}>{s.desc}</div>
+                <div style={{ fontWeight: 600 }}>{label(s.label)}</div>
+                <div className="demo" style={{ display: "block", marginTop: 2 }}>{label(s.desc)}</div>
               </div>
               {industrySel === s.id && <span style={{ color: "var(--accent)" }}>✓</span>}
             </div>
           ))}
         </div>
         <div className="wi-ctl">
-          <label>Duration
-            <select value={dur} onChange={(e) => setDur(+e.target.value)}>{[60, 120, 180, 300, 600].map((d) => <option key={d} value={d}>{d >= 60 ? `${d / 60} min` : `${d} s`}</option>)}</select>
+          <label>{tr("Duration")}
+            <select value={dur} onChange={(e) => setDur(+e.target.value)}>{[60, 120, 180, 300, 600].map((d) => <option key={d} value={d}>{d >= 60 ? tr("{0} min", d / 60) : tr("{0} s", d)}</option>)}</select>
           </label>
-          <label className="auto"><input type="checkbox" checked={baseline} onChange={(e) => setBaseline(e.target.checked)} /> compare with baseline</label>
-          <button className="btn primary" disabled={running || source !== "online" || (sel.size === 0 && !industrySel)} onClick={run}>{running ? "Simulating…" : "RUN"}</button>
+          <label className="auto"><input type="checkbox" checked={baseline} onChange={(e) => setBaseline(e.target.checked)} /> {tr("compare with baseline")}</label>
+          <button className="btn primary" disabled={running || source !== "online" || (sel.size === 0 && !industrySel)} onClick={run}>{running ? tr("Simulating…") : tr("RUN")}</button>
         </div>
-        {source !== "online" && <div className="hint">What-if runs on the backend (clone of the live engine). Start the backend to enable.</div>}
+        {source !== "online" && <div className="hint">{tr("What-if runs on the backend (clone of the live engine). Start the backend to enable.")}</div>}
         {err && <div className="form-err" style={{ marginTop: 6 }}>⚠ {err}</div>}
 
         {result && (
           <>
-            <h4 className="drawer-sub">Result · {result.request.scenario_name} · {result.request.duration_ticks / 10}s from {tickToClock(result.start_tick, 100, true)} <span className="demo">{result.compute_ms} ms</span></h4>
+            <h4 className="drawer-sub">{tr("Result · {0} · {1}s from {2}", result.request.scenario_name.split(" + ").map((name) => label(name)).join(" + "), result.request.duration_ticks / 10, tickToClock(result.start_tick, 100, true))} <span className="demo">{result.compute_ms} {tr("ms")}</span></h4>
             <table className="dt wi-table">
-              <thead><tr><th>Metric</th><th>Baseline</th><th>Scenario</th><th>Δ</th></tr></thead>
+              <thead><tr><th>{tr("Metric")}</th><th>{tr("Baseline")}</th><th>{tr("Scenario")}</th><th>Δ</th></tr></thead>
               <tbody>
                 {result.window.metrics.map((m) => {
                   const b = result.window.baseline?.[m.key], s = result.window.scenario[m.key];
@@ -156,7 +158,7 @@ export function WhatIfDrawer() {
                   const good = d === 0 ? null : (d > 0) === m.higher_is_better;
                   return (
                     <tr key={m.key}>
-                      <td style={{ fontFamily: "var(--font)" }}>{m.label}</td>
+                      <td style={{ fontFamily: "var(--font)" }}>{label(m.label)}</td>
                       <td>{b === undefined || b === null ? "—" : fmt(m.key, b)}</td>
                       <td>{fmt(m.key, s)}</td>
                       <td className={good === null ? "" : good ? "st-inprog" : "st-fail"}>{b === undefined || b === null ? "" : `${d > 0 ? "+" : ""}${fmt(m.key, Math.abs(d)).replace(/^/, d < 0 ? "-" : "")} ${pctText(m.key, b, s)}`}</td>
@@ -165,15 +167,15 @@ export function WhatIfDrawer() {
                 })}
               </tbody>
             </table>
-            <h4 className="drawer-sub">AI recommendation</h4>
+            <h4 className="drawer-sub">{tr("AI recommendation")}</h4>
             <div className="bubble" style={{ maxWidth: "100%", background: "var(--panel-2)", border: "1px solid var(--border)" }}>{result.ai_recommendation}</div>
-            <h4 className="drawer-sub">Key events in scenario ({result.key_events.length})</h4>
+            <h4 className="drawer-sub">{tr("Key events in scenario ({0})", result.key_events.length)}</h4>
             <div className="wi-events">
               {result.key_events.slice(0, 14).map((e) => <div key={e.id} className="ev-row"><span className="t">{tickToClock(e.tick, 100, true).slice(0, 8)}</span><span className={"sev-" + e.severity}>{e.message}</span></div>)}
             </div>
             <div className="wi-actions">
-              <button className="btn danger" onClick={() => { for (const i of result.request.injections) simControl.inject(i); setDrawer("scenarios"); }}>Apply scenario to LIVE</button>
-              <button className="btn" onClick={() => setResult(null)}>Clear</button>
+              <button className="btn danger" onClick={() => { for (const i of result.request.injections) simControl.inject(i); setDrawer("scenarios"); }}>{tr("Apply scenario to LIVE")}</button>
+              <button className="btn" onClick={() => setResult(null)}>{tr("Clear")}</button>
             </div>
           </>
         )}

@@ -1,3 +1,4 @@
+import { useI18n, type Translate } from "../../i18n";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { API_URL } from "../../services/ws";
@@ -20,6 +21,7 @@ function RobotThumb({ status }: { status: string }) {
 
 /** 點選電梯後的資訊面板（規格書 §18） */
 function LiftPanel({ id }: { id: string }) {
+  const { tr, label } = useI18n();
   const L = useStore((s) => s.twin.lifts[id]);
   const selectLift = useStore((s) => s.selectLift);
   const select = useStore((s) => s.select);
@@ -34,21 +36,22 @@ function LiftPanel({ id }: { id: string }) {
   const cite = (rid: string) => <button key={rid} className="cite" onClick={() => select(rid)}>{rid}</button>;
   const queueKeys = Object.keys(L.queue).sort((a, b) => Number(a) - Number(b));
   return (
-    <Panel title={id} sub="Freight lift" action={<button className="link" onClick={() => selectLift(null)}>✕</button>}>
-      <div className="kv"><span className="k">State</span><span className="v" style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: L.fault ? "#ef4444" : undefined }}>{L.fault ? "FAULT" : L.state.replace(/_/g, " ")}{eta ? ` · ETA ${eta}s` : ""}</span></div>
-      <div className="kv"><span className="k">Floor</span><span className="v">{L.floor === null ? `→ F${L.target_floor}` : `F${L.floor}`}</span></div>
-      <div className="kv"><span className="k">Occupied by</span><span className="v">{L.occupant ? cite(L.occupant) : "—"}</span></div>
-      <div className="kv"><span className="k">Reserved by</span><span className="v">{L.reserved_by ? cite(L.reserved_by) : "—"}</span></div>
-      {queueKeys.map((f) => <div className="kv" key={f}><span className="k">F{f} queue</span><span className="v">{L.queue[f].length ? L.queue[f].map(cite) : "—"}</span></div>)}
-      <div className="kv"><span className="k">Trips</span><span className="v">{L.trips}</span></div>
-      <div className="kv"><span className="k">Avg wait</span><span className="v">{avgWait}{L.wait_n ? " s" : ""}</span></div>
-      <div className="kv"><span className="k">Utilization</span><span className="v">{util}%</span></div>
-      <button className="btn-outline" onClick={() => focus([lay.cell[0] + 0.5, 4, lay.cell[1] + 0.5])}>Focus camera</button>
+    <Panel title={id} sub={tr("Freight lift")} action={<button className="link" onClick={() => selectLift(null)}>✕</button>}>
+      <div className="kv"><span className="k">{tr("State")}</span><span className="v" style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: L.fault ? "#ef4444" : undefined }}>{L.fault ? tr("FAULT") : label(L.state, label(L.state, L.state.replace(/_/g, " ")))}{eta ? tr(" · ETA {0}s", eta) : ""}</span></div>
+      <div className="kv"><span className="k">{tr("Floor")}</span><span className="v">{L.floor === null ? `→ F${L.target_floor}` : `F${L.floor}`}</span></div>
+      <div className="kv"><span className="k">{tr("Occupied by")}</span><span className="v">{L.occupant ? cite(L.occupant) : "—"}</span></div>
+      <div className="kv"><span className="k">{tr("Reserved by")}</span><span className="v">{L.reserved_by ? cite(L.reserved_by) : "—"}</span></div>
+      {queueKeys.map((f) => <div className="kv" key={f}><span className="k">{tr("F{0} queue", f)}</span><span className="v">{L.queue[f].length ? L.queue[f].map(cite) : "—"}</span></div>)}
+      <div className="kv"><span className="k">{tr("Trips")}</span><span className="v">{L.trips}</span></div>
+      <div className="kv"><span className="k">{tr("Avg wait")}</span><span className="v">{avgWait}{L.wait_n ? tr(" s") : ""}</span></div>
+      <div className="kv"><span className="k">{tr("Utilization")}</span><span className="v">{util}%</span></div>
+      <button className="btn-outline" onClick={() => focus([lay.cell[0] + 0.5, 4, lay.cell[1] + 0.5])}>{tr("Focus camera")}</button>
     </Panel>
   );
 }
 
 export function SelectedRobotPanel() {
+  const { tr, label } = useI18n();
   const liftId = useStore((s) => s.selectedLift);
   const id = useStore((s) => s.selectedRobot);
   const r = useStore((s) => (id ? s.twin.robots[id] : undefined));
@@ -57,48 +60,49 @@ export function SelectedRobotPanel() {
   const pretty = (loc: string | null | undefined) => {
     if (!loc) return "—";
     const l = locs[loc]; if (!l) return loc;
-    if (l.kind === "SHELF") return `Shelf ${loc.replace("SHELF-", "")}`;
-    if (l.kind === "PACKING") return "Packing Station";
+    if (l.kind === "SHELF") return tr("Shelf {0}", loc.replace("SHELF-", ""));
+    if (l.kind === "PACKING") return tr("Packing Station");
     return loc.replace(/-/g, " ");
   };
   const setModal = useStore((s) => s.setModal);
   if (liftId && !id) return <LiftPanel id={liftId} />;
-  if (!r) return <Panel title="Selected Robot"><div style={{ color: "var(--muted)", padding: "12px 0" }}>Click a robot or a lift in the 3D view</div></Panel>;
+  if (!r) return <Panel title={tr("Selected Robot")}><div style={{ color: "var(--muted)", padding: "12px 0" }}>{tr("Click a robot or a lift in the 3D view")}</div></Panel>;
   const col = STATUS_COLOR[r.status];
   const estH = (r.battery / 100) * 3.1;
   const batteryStr = r.battery.toFixed(r.battery < 10 ? 1 : 0);
   return (
-    <Panel title="Selected Robot">
+    <Panel title={tr("Selected Robot")}>
       <div className="robot-head">
         <span className="id">{r.id}</span>
         {(r.floor > 1 || r.lift_id) && <span className="floor-chip">{r.lift_id ? `🛗 ${r.lift_id}` : `F${r.floor}`}</span>}
-        <span className="status-text" style={{ color: col }}><Dot color={col} />{r.status[0] + r.status.slice(1).toLowerCase()}</span>
+        <span className="status-text" style={{ color: col }}><Dot color={col} />{label(r.status, r.status[0] + r.status.slice(1).toLowerCase())}</span>
       </div>
       <div className="robot-img"><RobotThumb status={r.status} /></div>
       <div className="battery">
         <span className="bar"><span className="fill" style={{ width: `${r.battery}%`, background: r.battery < 10 ? "#ef4444" : r.battery < 20 ? "#f97316" : "#22c55e" }} /></span>
         <span className="pct">{batteryStr}%</span>
-        <span className="est">Estimated {estH.toFixed(1)} h</span>
+        <span className="est">{tr("Estimated")} {estH.toFixed(1)} {tr("h")}</span>
       </div>
-      <div className="kv"><span className="k">State</span><span className="v" style={{ fontFamily: "var(--mono)", fontSize: 11.5 }}>{r.fsm}{r.velocity > 0.05 ? ` · ${r.velocity.toFixed(2)} m/s` : ""}{r.eta_s ? ` · ETA ${r.eta_s}s` : ""}</span></div>
-      <div className="kv"><span className="k">Perception</span><span className="v" style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: PERC_COLOR[r.perception?.state ?? "OFF"] }} title="Virtual LiDAR 270° / 4 m">{percText(r)}</span></div>
-      <div className="kv"><span className="k">Current Task</span><span className="v">{task ? `#${task.id}  ${task.type[0] + task.type.slice(1).toLowerCase()}` : "—"}</span></div>
-      <div className="kv"><span className="k">From</span><span className="v">{pretty(task?.source)}</span></div>
-      <div className="kv"><span className="k">To</span><span className="v">{pretty(task?.destination ?? r.destination)}</span></div>
-      <button className="btn-outline" onClick={() => setModal("robot")}>View Details</button>
+      <div className="kv"><span className="k">{tr("State")}</span><span className="v" style={{ fontFamily: "var(--mono)", fontSize: 11.5 }}>{label(r.fsm)}{r.velocity > 0.05 ? tr(" · {0} m/s", r.velocity.toFixed(2)) : ""}{r.eta_s ? tr(" · ETA {0}s", r.eta_s) : ""}</span></div>
+      <div className="kv"><span className="k">{tr("Perception")}</span><span className="v" style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: PERC_COLOR[r.perception?.state ?? "OFF"] }} title={tr("Virtual LiDAR 270° / 4 m")}>{percText(r, tr, label)}</span></div>
+      <div className="kv"><span className="k">{tr("Current Task")}</span><span className="v">{task ? `#${task.id}  ${label(task.type, task.type[0] + task.type.slice(1).toLowerCase())}` : "—"}</span></div>
+      <div className="kv"><span className="k">{tr("From")}</span><span className="v">{pretty(task?.source)}</span></div>
+      <div className="kv"><span className="k">{tr("To")}</span><span className="v">{pretty(task?.destination ?? r.destination)}</span></div>
+      <button className="btn-outline" onClick={() => setModal("robot")}>{tr("View Details")}</button>
     </Panel>
   );
 }
 
 const PERC_COLOR = { CLEAR: "#22d3ee", SLOWING: "#f59e0b", STOPPED: "#ef4444", OFF: "#64748b" } as const;
-export function percText(r: RobotState): string {
-  const P = r.perception; if (!P || P.state === "OFF") return "OFF";
+export function percText(r: RobotState, tr: Translate, label: (value: string) => string): string {
+  const P = r.perception; if (!P || P.state === "OFF") return label("OFF");
   const dyn = P.obstacles.find((o) => o.kind !== "RACK");
-  const who = dyn ? ` · ${dyn.id} ${dyn.distance_m.toFixed(1)} m` : "";
-  return `${P.state} · ahead ${P.ahead_m.toFixed(1)} m${who}`;
+  const who = dyn ? tr(" · {0} {1} m", dyn.id, dyn.distance_m.toFixed(1)) : "";
+  return tr("{0} · ahead {1} m", label(P.state), P.ahead_m.toFixed(1)) + who;
 }
 
 export function LiveCameraPanel() {
+  const { tr, label } = useI18n();
   const active = useStore((s) => s.activeCamera);
   const setActive = useStore((s) => s.setActiveCamera);
   const camStatus = useStore((s) => s.twin.cameras);
@@ -136,26 +140,26 @@ export function LiveCameraPanel() {
   useEffect(() => { if (!auto) return; const t = setInterval(analyze, 5000); return () => clearInterval(t); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auto, cam.id, source]);
   return (
-    <Panel title={isDock ? "Camera · Dock" : `Camera · Zone ${cam.zone}`} action={
-      <span className="cam-tabs">{groups.map(([g, l]) => <button key={g} className={curGroup === g ? "on" : ""} onClick={() => setActive(camsOf(g)[0].id)}>{l}</button>)}</span>
+    <Panel title={isDock ? tr("Camera · Dock") : tr("Camera · Zone {0}", cam.zone)} action={
+      <span className="cam-tabs">{groups.map(([g, l]) => <button key={g} className={curGroup === g ? "on" : ""} onClick={() => setActive(camsOf(g)[0].id)}>{label(l)}</button>)}</span>
     }>
       <div className="cam-view">
         <Canvas resize={{ offsetSize: true }} dpr={1} camera={{ position: cam.position, fov: cam.fov_deg, near: 0.3, far: 120 }} gl={{ antialias: false, powerPreference: "low-power", preserveDrawingBuffer: true }} onCreated={({ camera, gl }) => { camera.lookAt(...cam.look_at); glRef.current = gl; }} key={cam.id} frameloop="always">
           <SceneContent quality="low" lite />
         </Canvas>
-        {offline ? <div className="cam-offline">NO SIGNAL<br /><small>{cam.id} offline</small></div> : <span className="live">LIVE</span>}
+        {offline ? <div className="cam-offline">{tr("NO SIGNAL")}<br /><small>{cam.id} {tr("offline")}</small></div> : <span className="live">{tr("LIVE")}</span>}
         <span className="tag">{cam.id}</span>
         <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(0deg, transparent 0 3px, rgba(0,0,0,.12) 3px 4px)", pointerEvents: "none" }} />
         {obs && obs.bbox && obs.event !== "none" && (
-          <div className="vlm-box" style={{ left: `${obs.bbox[0] * 100}%`, top: `${obs.bbox[1] * 100}%`, width: `${obs.bbox[2] * 100}%`, height: `${obs.bbox[3] * 100}%` }}><span>{obs.event.replace("_", " ")} {Math.round(obs.confidence * 100)}%</span></div>
+          <div className="vlm-box" style={{ left: `${obs.bbox[0] * 100}%`, top: `${obs.bbox[1] * 100}%`, width: `${obs.bbox[2] * 100}%`, height: `${obs.bbox[3] * 100}%` }}><span>{label(obs.event, obs.event.replace("_", " "))} {Math.round(obs.confidence * 100)}%</span></div>
         )}
         {busy && <div className="vlm-scan" />}
       </div>
       <div className="vlm-bar">
-        <button className={"btn" + (busy ? " busy" : "")} onClick={analyze} disabled={busy || offline} title="Send this frame to the VLM">{busy ? "Analysing…" : "Analyze"}</button>
-        <label className="auto"><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> auto 5s</label>
+        <button className={"btn" + (busy ? " busy" : "")} onClick={analyze} disabled={busy || offline} title={tr("Send this frame to the VLM")}>{busy ? tr("Analysing…") : tr("Analyze")}</button>
+        <label className="auto"><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> {tr("auto 5s")}</label>
         <span className={"vlm-result " + (obs ? (obs.event === "none" ? "ok" : "alert") : "")}>
-          {err ? <span className="err">{err}</span> : obs ? `${obs.event === "none" ? "clear" : obs.event.replace("_", " ")} · ${Math.round(obs.confidence * 100)}%${obs.raw?.startsWith("simulated") ? " · sim" : ""}` : "no observation yet"}
+          {err ? <span className="err">{label(err)}</span> : obs ? `${obs.event === "none" ? tr("clear") : label(obs.event, obs.event.replace("_", " "))} · ${Math.round(obs.confidence * 100)}%${obs.raw?.startsWith("simulated") ? ` · ${tr("sim")}` : ""}` : tr("no observation yet")}
         </span>
       </div>
       <div className="cam-dots">
@@ -166,11 +170,12 @@ export function LiveCameraPanel() {
 }
 
 export function EventLogPanel() {
+  const { tr } = useI18n();
   const events = useStore((s) => s.twin.recent_events);
   const select = useStore((s) => s.select);
   const setModal = useStore((s) => s.setModal);
   return (
-    <Panel title="Event Log" grow action={<button className="link" onClick={() => setModal("audit")}>View All</button>}>
+    <Panel title={tr("Event Log")} grow action={<button className="link" onClick={() => setModal("audit")}>{tr("View All")}</button>}>
       {events.filter((e) => e.severity !== "LOW").slice(0, 8).map((e) => {
         const col = e.severity === "INFO" || e.severity === "LOW" ? undefined : SEVERITY_COLOR[e.severity];
         return (

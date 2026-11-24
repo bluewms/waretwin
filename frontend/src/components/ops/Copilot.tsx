@@ -1,3 +1,4 @@
+import { useI18n } from "../../i18n";
 /**
  * AI Operations Copilot 對話（規格 1️⃣6️⃣）
  * online：COPILOT_ASK → 後端 LLM（或規則式 fallback）→ COPILOT_REPLY；引用 (R03 / A3812 / E123) 可點擊。
@@ -16,9 +17,10 @@ const SUGGESTIONS = [
   "Which robot should handle the next waiting task?",
   "How can we improve throughput?",
   "Which conveyor is the bottleneck?",
-];
+] as const;
 
 export function Copilot() {
+  const { tr } = useI18n();
   const source = useStore((s) => s.source);
   const select = useStore((s) => s.select);
   const setModal = useStore((s) => s.setModal);
@@ -38,15 +40,15 @@ export function Copilot() {
   }), []);
   useEffect(() => { listRef.current?.scrollTo({ top: 1e6 }); }, [msgs]);
 
-  const ask = (question: string) => {
+  const ask = (question: string, suggested?: string) => {
     const text = question.trim(); if (!text) return;
     // 把「next waiting task」換成實際任務 id，讓回答可引用
     const waiting = Object.values(tasks).find((t) => t.status === "WAITING");
     const sent = waiting ? text.replace(/the next waiting task/i, waiting.id) : text;
     const request_id = `q${++seq.current}`;
-    setMsgs((m) => [...m, { role: "user", text: sent }, { role: "ai", text: "…", pending: true, request_id }]);
+    setMsgs((m) => [...m, { role: "user", text: suggested ?? sent }, { role: "ai", text: "…", pending: true, request_id }]);
     setQ("");
-    if (source !== "online") { setMsgs((m) => m.map((x) => (x.request_id === request_id ? { role: "ai", text: "Copilot runs on the backend. Start `uvicorn app.main:app` (the LOCAL badge means the backend is unreachable)." } : x))); return; }
+    if (source !== "online") { setMsgs((m) => m.map((x) => (x.request_id === request_id ? { role: "ai", text: tr("Copilot runs on the backend. Start `uvicorn app.main:app` (the LOCAL badge means the backend is unreachable).") } : x))); return; }
     wsSend({ type: "COPILOT_ASK", request_id, question: sent });
   };
 
@@ -59,25 +61,25 @@ export function Copilot() {
 
   return (
     <div className="copilot">
-      {ai && <div className={"ai-mode " + (ai.llm ? "llm" : "demo")}>{ai.llm ? `LLM mode · ${ai.model}` : "Demo mode · rule-based analysis of the live twin state (no API key configured — set OPENAI_API_KEY on the backend to enable the LLM)"}</div>}
-      <div className="chips">{SUGGESTIONS.map((s) => <button key={s} className="chip" onClick={() => ask(s)}>{s}</button>)}</div>
+      {ai && <div className={"ai-mode " + (ai.llm ? "llm" : "demo")}>{ai.llm ? tr("LLM mode · {0}", ai.model) : tr("Demo mode · rule-based analysis of the live twin state (no API key configured — set OPENAI_API_KEY on the backend to enable the LLM)")}</div>}
+      <div className="chips">{SUGGESTIONS.map((s) => <button key={s} className="chip" onClick={() => ask(s, tr(s))}>{tr(s)}</button>)}</div>
       <div className="chat" ref={listRef}>
-        {msgs.length === 0 && <div className="hint">Ask about throughput, congestion, robot health, task assignment or failure scenarios. Answers are grounded in the live twin state and cite robots / tasks / events you can click.</div>}
+        {msgs.length === 0 && <div className="hint">{tr("Ask about throughput, congestion, robot health, task assignment or failure scenarios. Answers are grounded in the live twin state and cite robots / tasks / events you can click.")}</div>}
         {msgs.map((m, i) => (
           <div key={i} className={"msg " + m.role}>
-            <div className="bubble">{m.pending ? <span className="typing">Analysing twin state…</span> : renderText(m.text)}</div>
+            <div className="bubble">{m.pending ? <span className="typing">{tr("Analysing twin state…")}</span> : renderText(m.text)}</div>
             {m.role === "ai" && !m.pending && (
               <div className="msg-meta">
                 {m.model && <span className="model">{m.model}</span>}
-                {m.citations && m.citations.length > 0 && <span>· cites {m.citations.map((c, j) => <button key={j} className="cite" onClick={() => { if (c.robot_id) select(c.robot_id); else if (c.task_id) setModal("tasks"); else setModal("audit"); }}>{c.robot_id ?? c.task_id ?? c.event_id}</button>)}</span>}
+                {m.citations && m.citations.length > 0 && <span>{tr("· cites")} {m.citations.map((c, j) => <button key={j} className="cite" onClick={() => { if (c.robot_id) select(c.robot_id); else if (c.task_id) setModal("tasks"); else setModal("audit"); }}>{c.robot_id ?? c.task_id ?? c.event_id}</button>)}</span>}
               </div>
             )}
           </div>
         ))}
       </div>
       <form className="ask" onSubmit={(e) => { e.preventDefault(); ask(q); }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask the Operations Copilot…" />
-        <button className="btn primary" type="submit">Ask</button>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Ask the Operations Copilot…")} />
+        <button className="btn primary" type="submit">{tr("Ask")}</button>
       </form>
     </div>
   );

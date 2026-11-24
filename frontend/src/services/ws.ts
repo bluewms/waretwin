@@ -111,7 +111,7 @@ function handle(msg: ServerMessage) {
     case "ERROR": {
       console.warn("[ws] server error", msg.code, msg.message);
       if (msg.code === "RATE_LIMITED" || msg.code === "TOO_LARGE" || msg.code === "BAD_TASK" || msg.code === "BAD_MESSAGE") {
-        st.setNotice(`${msg.code === "RATE_LIMITED" ? "Rate limit" : msg.code === "TOO_LARGE" ? "Request too large" : msg.code === "BAD_TASK" ? "Task rejected" : "Rejected"}: ${msg.message}`);
+        st.setNotice(msg.code === "RATE_LIMITED" ? "Rate limit" : msg.code === "TOO_LARGE" ? "Request too large" : msg.code === "BAD_TASK" ? "Task rejected" : "Rejected", msg.message);
         // Copilot 等待中的泡泡也要收掉
         const rid = (msg as unknown as { request_id?: string }).request_id;
         if (rid) copilotListeners.forEach((fn) => fn({ request_id: rid, text: `⏳ ${msg.message}`, citations: [] }));

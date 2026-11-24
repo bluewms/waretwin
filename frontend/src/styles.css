@@ -345,3 +345,15 @@ table.dt.full td { white-space: normal; }
 .roi-grid input:focus { border-color: var(--accent); outline: none; }
 .tile.highlight { border-color: var(--accent); background: rgba(59,130,246,.08); }
 .tile.highlight .v { color: var(--accent); }
+
+.topbar-right .language-switch, .narrow-gate .language-switch {
+  flex-shrink: 0;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  padding: 4px 6px;
+  font: inherit;
+}
+.narrow-gate .language-switch { margin-top: 12px; }
+:root:lang(zh-CN) { --font: "Inter", system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }

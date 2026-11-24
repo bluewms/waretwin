@@ -1,9 +1,11 @@
+import { useI18n } from "../../i18n";
 import { Html } from "@react-three/drei";
 import { useStore } from "../../state/store";
 import { FLOOR_ELEV } from "./Mezzanine";
 
 /** 人員 / 堆高機 NPC；Phase 1 為靜態裝飾，Phase 4 由故障注入驅動 */
 export function People({ lite = false }: { lite?: boolean }) {
+  const { tr } = useI18n();
   const people = useStore((s) => s.twin.people);
   const af = useStore((s) => s.activeFloor);
   const activeFloor = lite || af === "exploded" ? "all" : af;
@@ -22,7 +24,7 @@ export function People({ lite = false }: { lite?: boolean }) {
         return (
           <group key={p.id} position-y={ey}>
             {p.kind === "WORKER" ? <Worker position={p.position} heading={p.heading} alert /> : <Forklift position={p.position} heading={p.heading} />}
-            {!lite && <Html position={[p.position[0], 2.3, p.position[2]]} center zIndexRange={[12, 0]}><div className="lbl err">⚠ HUMAN</div></Html>}
+            {!lite && <Html position={[p.position[0], 2.3, p.position[2]]} center zIndexRange={[12, 0]}><div className="lbl err">{tr("⚠ HUMAN")}</div></Html>}
           </group>
         );
       })}

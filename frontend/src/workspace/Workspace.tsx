@@ -1,3 +1,4 @@
+import { LanguageSwitch, useI18n } from "../i18n";
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ClipboardCheck, Copy, Download, LogOut, Play, Plus, Redo2, Save, Trash2, Undo2, ZoomIn, ZoomOut } from 'lucide-react';
 import type { LayoutRack, WarehouseLayout } from '../layout/types';
@@ -9,6 +10,7 @@ type History = { past: WarehouseLayout[]; present: WarehouseLayout; future: Ware
 const clone = <T,>(value: T): T => structuredClone(value);
 
 export function Workspace() {
+  const { tr, label } = useI18n();
   const [access, setAccess] = useState('');
   const [token, setToken] = useState('');
   const api = useMemo(() => workspaceClient(token), [token]);
@@ -24,7 +26,7 @@ export function Workspace() {
   const [validation, setValidation] = useState<LayoutValidation | null>(null);
   const [busy, setBusy] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [name, setName] = useState('New warehouse');
+  const [name, setName] = useState<string | null>(null);
   const [dimensions, setDimensions] = useState({ width: 60, depth: 40, height: 10 });
   const svg = useRef<SVGSVGElement>(null);
   const drag = useRef<{ id: string; x: number; z: number; before: WarehouseLayout } | null>(null);
@@ -61,7 +63,7 @@ export function Workspace() {
   }, [dirty]);
 
   async function openWarehouse(id: string) {
-    if (dirty && !window.confirm('Discard unsaved changes?')) return;
+    if (dirty && !window.confirm(tr("Discard unsaved changes?"))) return;
     await action(async () => {
       const rows = await api.revisions(id); setRevisions(rows);
       const preferred = rows.find(row => row.state === 'draft') ?? rows[0];
@@ -106,85 +108,87 @@ export function Workspace() {
       const client = workspaceClient(access); await client.me(); setWarehouses(await client.warehouses());
       setToken(access); setAccess('');
     }); }}>
-      <h1>WareTwin</h1><h2>Customer workspace</h2>
-      <label>Workspace access token<input type="password" autoComplete="off" value={access} onChange={e => setAccess(e.target.value)} required /></label>
-      {error && <p role="alert">{error}</p>}
-      <button disabled={busy || !access} type="submit">Sign in</button>
-      <a href="/">Open demo</a>
+      <LanguageSwitch />
+      <h1>WareTwin</h1><h2>{tr("Customer workspace")}</h2>
+      <label>{tr("Workspace access token")}<input type="password" autoComplete="off" value={access} onChange={e => setAccess(e.target.value)} required /></label>
+      {error && <p role="alert">{label(error)}</p>}
+      <button disabled={busy || !access} type="submit">{tr("Sign in")}</button>
+      <a href="/">{tr("Open demo")}</a>
     </form>
   </main>;
 
   return <main className="wt-workspace">
-    <header className="wt-header"><h1>WareTwin <span>Layouts</span></h1><a href="/">Demo</a>
-      <button title="Sign out" aria-label="Sign out" onClick={() => {
-        if (dirty && !window.confirm('Discard unsaved changes?')) return;
+    <header className="wt-header"><h1>WareTwin <span>{tr("Layouts")}</span></h1><a href="/">{tr("Demo")}</a>
+      <LanguageSwitch />
+      <button title={tr("Sign out")} aria-label={tr("Sign out")} onClick={() => {
+        if (dirty && !window.confirm(tr("Discard unsaved changes?"))) return;
         setToken(''); setRevision(null); setHistory(null); setWarehouses([]); setRevisions([]);
       }}><LogOut size={18} /></button>
     </header>
-    {error && <div className="wt-error" role="alert">{error}</div>}
+    {error && <div className="wt-error" role="alert">{label(error)}</div>}
     <div className="wt-toolbar">
-      <select aria-label="Warehouse" disabled={busy} value={revision?.warehouse_id ?? ''} onChange={e => void openWarehouse(e.target.value)}>
-        <option value="" disabled>Select warehouse</option>{warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+      <select aria-label={tr("Warehouse")} disabled={busy} value={revision?.warehouse_id ?? ''} onChange={e => void openWarehouse(e.target.value)}>
+        <option value="" disabled>{tr("Select warehouse")}</option>{warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
       </select>
-      <button title="New warehouse" aria-label="New warehouse" disabled={busy} onClick={() => setCreateOpen(true)}><Plus size={18} /></button>
-      {revision && <select aria-label="Revision" disabled={busy} value={revision.id} onChange={e => {
+      <button title={tr("New warehouse")} aria-label={tr("New warehouse")} disabled={busy} onClick={() => setCreateOpen(true)}><Plus size={18} /></button>
+      {revision && <select aria-label={tr("Revision")} disabled={busy} value={revision.id} onChange={e => {
         const id = e.target.value;
-        if (dirty && !window.confirm('Discard unsaved changes?')) return;
+        if (dirty && !window.confirm(tr("Discard unsaved changes?"))) return;
         void action(async () => load(await api.revision(revision.warehouse_id, id)));
-      }}>{revisions.map(r => <option key={r.id} value={r.id}>{r.state} {r.id.slice(0, 6)} · v{r.version}</option>)}</select>}
+      }}>{revisions.map(r => <option key={r.id} value={r.id}>{tr(r.state)} {r.id.slice(0, 6)} · v{r.version}</option>)}</select>}
       <span className="wt-grow" />
-      <span role="status">{dirty ? 'Unsaved changes' : revision ? 'Saved' : ''}</span>
-      <button title="Undo" aria-label="Undo" disabled={busy || readOnly || !history?.past.length} onClick={() => setHistory(h => !h?.past.length ? h : ({ past: h.past.slice(0, -1), present: h.past[h.past.length-1], future: [h.present, ...h.future] }))}><Undo2 size={18} /></button>
-      <button title="Redo" aria-label="Redo" disabled={busy || readOnly || !history?.future.length} onClick={() => setHistory(h => !h?.future.length ? h : ({ past: [...h.past, h.present], present: h.future[0], future: h.future.slice(1) }))}><Redo2 size={18} /></button>
-      <button title="Save draft" aria-label="Save draft" disabled={busy || readOnly || !dirty} onClick={() => void action(async () => {
+      <span role="status">{dirty ? tr("Unsaved changes") : revision ? tr("Saved") : ''}</span>
+      <button title={tr("Undo")} aria-label={tr("Undo")} disabled={busy || readOnly || !history?.past.length} onClick={() => setHistory(h => !h?.past.length ? h : ({ past: h.past.slice(0, -1), present: h.past[h.past.length-1], future: [h.present, ...h.future] }))}><Undo2 size={18} /></button>
+      <button title={tr("Redo")} aria-label={tr("Redo")} disabled={busy || readOnly || !history?.future.length} onClick={() => setHistory(h => !h?.future.length ? h : ({ past: [...h.past, h.present], present: h.future[0], future: h.future.slice(1) }))}><Redo2 size={18} /></button>
+      <button title={tr("Save draft")} aria-label={tr("Save draft")} disabled={busy || readOnly || !dirty} onClick={() => void action(async () => {
         if (!revision || !layout) return;
         const saved = await api.save(revision, layout); setRevision(saved);
         setRevisions(await api.revisions(saved.warehouse_id));
       })}><Save size={18} /></button>
-      <button title="Create alternative draft" aria-label="Create alternative draft" disabled={busy || dirty || !revision} onClick={() => void action(async () => {
+      <button title={tr("Create alternative draft")} aria-label={tr("Create alternative draft")} disabled={busy || dirty || !revision} onClick={() => void action(async () => {
         if (!revision) return;
         const alternative = await api.fork(revision); setRevisions(await api.revisions(alternative.warehouse_id)); load(alternative);
       })}><Copy size={18} /></button>
-      <button title="Check saved geometry" aria-label="Check saved geometry" disabled={busy || dirty || !revision} onClick={() => void action(async () => {
+      <button title={tr("Check saved geometry")} aria-label={tr("Check saved geometry")} disabled={busy || dirty || !revision} onClick={() => void action(async () => {
         if (revision) setValidation(await api.validate(revision));
       })}><ClipboardCheck size={18} /></button>
-      <button title="Export layout JSON" aria-label="Export layout JSON" disabled={!layout} onClick={exportLayout}><Download size={18} /></button>
-      <button title="Open the published layout in the live demo simulation" aria-label="Open published layout in demo"
+      <button title={tr("Export layout JSON")} aria-label={tr("Export layout JSON")} disabled={!layout} onClick={exportLayout}><Download size={18} /></button>
+      <button title={tr("Open the published layout in the live demo simulation")} aria-label={tr("Open published layout in demo")}
         disabled={busy || revision?.state !== 'published'}
         onClick={() => void action(async () => {
           setLayout(revision!.document);
           location.href = "/";
         })}><Play size={18} /></button>
     </div>
-    {validation && !dirty && validation.version === revision?.version && <section className="wt-validation" aria-label="Geometry validation">
-      <h2>{validation.valid ? 'Geometry checks passed' : `${validation.issues.length} geometry issues`}</h2>
+    {validation && !dirty && validation.version === revision?.version && <section className="wt-validation" aria-label={tr("Geometry validation")}>
+      <h2>{validation.valid ? tr("Geometry checks passed") : tr("{0} geometry issues", validation.issues.length)}</h2>
       {validation.issues.length > 0 && <ul>{validation.issues.map((issue, index) => <li key={`${issue.path}-${index}`}>
         <strong>{issue.path}</strong>: {issue.message}
       </li>)}</ul>}
     </section>}
-    {createOpen && <div className="wt-modal" role="dialog" aria-modal="true" aria-label="New warehouse"><form onSubmit={e => { e.preventDefault();
-      if (dirty && !window.confirm('Discard unsaved changes?')) return;
+    {createOpen && <div className="wt-modal" role="dialog" aria-modal="true" aria-label={tr("New warehouse")}><form onSubmit={e => { e.preventDefault();
+      if (dirty && !window.confirm(tr("Discard unsaved changes?"))) return;
       void action(async () => {
-        const created = await api.createEmpty(name, dimensions.width, dimensions.depth, dimensions.height);
+        const created = await api.createEmpty(name ?? tr("New warehouse"), dimensions.width, dimensions.depth, dimensions.height);
         setWarehouses(await api.warehouses()); setRevisions(await api.revisions(created.warehouse_id)); load(created); setCreateOpen(false);
       });
-    }}><h2>New warehouse</h2><label>Name<input value={name} onChange={e => setName(e.target.value)} required maxLength={160} /></label>
-      {(['width','depth','height'] as const).map(key => <label key={key}>{key} (m)<input type="number" min="1" max="1000" step="0.1" value={dimensions[key]} onChange={e => setDimensions(d => ({ ...d, [key]: e.target.valueAsNumber }))} required /></label>)}
-      <div className="wt-actions"><button type="button" disabled={busy} onClick={() => setCreateOpen(false)}>Cancel</button><button disabled={busy}>Create warehouse</button></div>
+    }}><h2>{tr("New warehouse")}</h2><label>{tr("Name")}<input value={name ?? tr("New warehouse")} onChange={e => setName(e.target.value)} required maxLength={160} /></label>
+      {(['width','depth','height'] as const).map(key => <label key={key}>{tr("{0} (m)", tr(key))}<input type="number" min="1" max="1000" step="0.1" value={dimensions[key]} onChange={e => setDimensions(d => ({ ...d, [key]: e.target.valueAsNumber }))} required /></label>)}
+      <div className="wt-actions"><button type="button" disabled={busy} onClick={() => setCreateOpen(false)}>{tr("Cancel")}</button><button disabled={busy}>{tr("Create warehouse")}</button></div>
     </form></div>}
-    {!layout ? <div className="wt-empty"><h2>Your warehouses</h2><button onClick={() => setCreateOpen(true)}><Plus size={18} /> New warehouse</button></div> : <div className="wt-editor">
-      <aside className="wt-properties"><h2>Building</h2>
-        {(['width','depth','height'] as const).map(key => <label key={key}>{key} (m)<input type="number" min="1" max="1000" step="0.1" disabled={busy || readOnly} value={layout.size[key]} onChange={e => {
+    {!layout ? <div className="wt-empty"><h2>{tr("Your warehouses")}</h2><button onClick={() => setCreateOpen(true)}><Plus size={18} /> {tr("New warehouse")}</button></div> : <div className="wt-editor">
+      <aside className="wt-properties"><h2>{tr("Building")}</h2>
+        {(['width','depth','height'] as const).map(key => <label key={key}>{tr("{0} (m)", tr(key))}<input type="number" min="1" max="1000" step="0.1" disabled={busy || readOnly} value={layout.size[key]} onChange={e => {
           const value = e.target.valueAsNumber; if (!Number.isFinite(value) || value <= 0 || value > 1000) return;
           edit(d => { d.size[key] = value; d.grid.cols = Math.ceil(d.size.width / d.grid.cell_size); d.grid.rows = Math.ceil(d.size.depth / d.grid.cell_size); });
         }} /></label>)}
-        <label>Floor<select value={floor} onChange={e => { setFloor(Number(e.target.value)); setSelection(null); }}>{layout.floors.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
-        <label>Snap (m)<select value={snap} onChange={e => setSnap(Number(e.target.value))}><option value={0.1}>0.1</option><option value={0.5}>0.5</option><option value={1}>1</option></select></label>
-        <h2>Racks</h2><button disabled={busy || readOnly} onClick={() => { const id = crypto.randomUUID(); edit(d => d.racks.push({ id, zone: '', floor, position: [2,d.floors.find(f => f.id === floor)?.elevation ?? 0,2], size: [4,3,1.2], rotation: 0, levels: 3, model: 'standard', blocks_grid: true })); setSelection(id); }}><Plus size={18} /> Add rack</button>
-        <div className="wt-object-list">{layout.racks.filter(r => (r.floor ?? 1) === floor).map((r, index) => <button key={r.id} aria-pressed={r.id === selection} onClick={() => setSelection(r.id)}>Rack {index+1} <small>{r.id.slice(0,6)}</small></button>)}</div>
+        <label>{tr("Floor")}<select value={floor} onChange={e => { setFloor(Number(e.target.value)); setSelection(null); }}>{layout.floors.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
+        <label>{tr("Snap (m)")}<select value={snap} onChange={e => setSnap(Number(e.target.value))}><option value={0.1}>0.1</option><option value={0.5}>0.5</option><option value={1}>1</option></select></label>
+        <h2>{tr("Racks")}</h2><button disabled={busy || readOnly} onClick={() => { const id = crypto.randomUUID(); edit(d => d.racks.push({ id, zone: '', floor, position: [2,d.floors.find(f => f.id === floor)?.elevation ?? 0,2], size: [4,3,1.2], rotation: 0, levels: 3, model: 'standard', blocks_grid: true })); setSelection(id); }}><Plus size={18} /> {tr("Add rack")}</button>
+        <div className="wt-object-list">{layout.racks.filter(r => (r.floor ?? 1) === floor).map((r, index) => <button key={r.id} aria-pressed={r.id === selection} onClick={() => setSelection(r.id)}>{tr("Rack {0}", index + 1)} <small>{r.id.slice(0,6)}</small></button>)}</div>
       </aside>
-      <section className="wt-plan-area" aria-label="Floor plan"><div className="wt-plan-tools"><span>{layout.size.width} × {layout.size.depth} m</span><button title="Zoom out" aria-label="Zoom out" onClick={() => setZoom(z => Math.max(0.5,z/1.25))}><ZoomOut size={18} /></button><button title="Zoom in" aria-label="Zoom in" onClick={() => setZoom(z => Math.min(4,z*1.25))}><ZoomIn size={18} /></button></div>
-        <div className="wt-plan-scroll"><svg ref={svg} role="img" aria-label={`${layout.name} floor plan`} viewBox={`-2 -2 ${layout.size.width+4} ${layout.size.depth+4}`} style={{ width: `${zoom*100}%`, minWidth: 300 }} onPointerMove={e => {
+      <section className="wt-plan-area" aria-label={tr("Floor plan")}><div className="wt-plan-tools"><span>{layout.size.width} × {layout.size.depth} m</span><button title={tr("Zoom out")} aria-label={tr("Zoom out")} onClick={() => setZoom(z => Math.max(0.5,z/1.25))}><ZoomOut size={18} /></button><button title={tr("Zoom in")} aria-label={tr("Zoom in")} onClick={() => setZoom(z => Math.min(4,z*1.25))}><ZoomIn size={18} /></button></div>
+        <div className="wt-plan-scroll"><svg ref={svg} role="img" aria-label={tr("{0} floor plan", layout.name)} viewBox={`-2 -2 ${layout.size.width+4} ${layout.size.depth+4}`} style={{ width: `${zoom*100}%`, minWidth: 300 }} onPointerMove={e => {
           const active = drag.current; const point = pointer(e); if (!active || !point) return;
           setHistory(h => { if (!h) return h; const next = clone(h.present); const item = next.racks.find(r => r.id === active.id); if (item) { item.position[0] = Math.round((point.x-active.x)/snap)*snap; item.position[2] = Math.round((point.y-active.z)/snap)*snap; } return { ...h, present: next }; });
         }} onPointerUp={() => endDrag()} onPointerCancel={() => endDrag(true)}>
@@ -198,12 +202,12 @@ export function Workspace() {
           }}><title>{r.id}</title></rect>)}
         </svg></div>
       </section>
-      <aside className="wt-properties"><h2>Selection</h2>{rack ? <>
+      <aside className="wt-properties"><h2>{tr("Selection")}</h2>{rack ? <>
         <small>{rack.id}</small>
-        {([['x',rack.position[0]],['z',rack.position[2]],['width',rack.size[0]],['depth',rack.size[2]],['height',rack.size[1]],['rotation',rack.rotation]] as [Parameters<typeof changeRack>[0],number][]).map(([key,value]) => <label key={key}>{key}{key === 'rotation' ? ' (°)' : ' (m)'}<input type="number" step={key === 'rotation' ? 15 : 0.1} value={value} disabled={busy || readOnly} onChange={e => changeRack(key,e.target.valueAsNumber)} /></label>)}
-        <div className="wt-actions"><button title="Duplicate rack" aria-label="Duplicate rack" disabled={busy || readOnly} onClick={() => { const copy: LayoutRack = clone(rack); copy.id = crypto.randomUUID(); copy.position[0] += snap; copy.position[2] += snap; edit(d => d.racks.push(copy)); setSelection(copy.id); }}><Copy size={18} /></button>
-          <button title="Delete rack" aria-label="Delete rack" disabled={busy || readOnly} onClick={() => { edit(d => { d.racks = d.racks.filter(r => r.id !== selection); }); setSelection(null); }}><Trash2 size={18} /></button></div>
-      </> : <p>No selection</p>}</aside>
+        {([['x',rack.position[0]],['z',rack.position[2]],['width',rack.size[0]],['depth',rack.size[2]],['height',rack.size[1]],['rotation',rack.rotation]] as [Parameters<typeof changeRack>[0],number][]).map(([key,value]) => <label key={key}>{tr(key === 'rotation' ? "{0} (°)" : "{0} (m)", tr(key))}<input type="number" step={key === 'rotation' ? 15 : 0.1} value={value} disabled={busy || readOnly} onChange={e => changeRack(key,e.target.valueAsNumber)} /></label>)}
+        <div className="wt-actions"><button title={tr("Duplicate rack")} aria-label={tr("Duplicate rack")} disabled={busy || readOnly} onClick={() => { const copy: LayoutRack = clone(rack); copy.id = crypto.randomUUID(); copy.position[0] += snap; copy.position[2] += snap; edit(d => d.racks.push(copy)); setSelection(copy.id); }}><Copy size={18} /></button>
+          <button title={tr("Delete rack")} aria-label={tr("Delete rack")} disabled={busy || readOnly} onClick={() => { edit(d => { d.racks = d.racks.filter(r => r.id !== selection); }); setSelection(null); }}><Trash2 size={18} /></button></div>
+      </> : <p>{tr("No selection")}</p>}</aside>
     </div>}
   </main>;
 }

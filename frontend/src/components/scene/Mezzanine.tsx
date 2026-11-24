@@ -1,3 +1,4 @@
+import { useI18n, type Translate } from "../../i18n";
 /**
  * Phase 8（規格書 §4/§5）：工業風夾層與貨梯。
  *  - 樓板 45 cm 厚、鋼構主梁/次梁、固定柱位（Layout Config 管理，不隨機）、黃黑警示邊、雙橫桿護欄 + toe board、電梯井道開口。
@@ -123,19 +124,20 @@ export const LIFT_LIGHT: Record<string, string> = {
   FAULT: "#ef4444",
 };
 
-export function liftLabel(L: LiftState | undefined): string {
+function liftLabel(L: LiftState | undefined, tr: Translate, label: (value: string, fallback?: string) => string): string {
   if (!L) return "";
-  if (L.fault) return "FAULT";
-  if (L.state === "MOVING_UP" || L.state === "MOVING_DOWN") return `→ F${L.target_floor} · ${L.occupant ?? "empty"}`;
+  if (L.fault) return tr("FAULT");
+  if (L.state === "MOVING_UP" || L.state === "MOVING_DOWN") return tr("→ F{0} · {1}", L.target_floor, L.occupant ?? tr("empty"));
   const q = Object.keys(L.queue).reduce((n, f) => n + (L.queue[f]?.length ?? 0), 0);
-  if (L.state === "IDLE") return `IDLE AT F${L.floor}${q ? ` · QUEUE ${q}` : ""}`;
-  return `${L.state.replace(/_/g, " ")}${L.occupant ? ` · ${L.occupant}` : ""}`;
+  if (L.state === "IDLE") return tr("IDLE AT F{0}", L.floor) + (q ? tr(" · QUEUE {0}", q) : "");
+  return `${label(L.state, L.state.replace(/_/g, " "))}${L.occupant ? ` · ${L.occupant}` : ""}`;
 }
 
 /** 貨梯（補強規格書）：VRC 風格 —— 鋼構 carriage、雙導軌、頂置驅動箱、全高金屬網圍籬、
  *  每層雙開式連鎖安全門、門框指示燈組、防滑鋼板平台（黃黑邊、docking marker、bumper）、門檻與 leveling 指示。
  *  透明青色只作為 Digital Twin occupancy overlay，不充當平台本體。 */
 function Lift({ l, elev, lite }: { l: (typeof layout.lifts)[number]; elev: number; lite: boolean }) {
+  const { tr, label } = useI18n();
   const platRef = useRef<THREE.Group>(null!);
   const leafRefs = useRef<Array<THREE.Mesh | null>>([null, null, null, null]);   // [f1L, f1R, f2L, f2R]
   const lightRef = useRef<THREE.MeshBasicMaterial>(null!);
@@ -274,8 +276,8 @@ function Lift({ l, elev, lite }: { l: (typeof layout.lifts)[number]; elev: numbe
       {!lite && (
         <Html position={[0, H + 1.3, 0]} zIndexRange={[9, 0]} center>
           <div className="lift-lbl" onClick={(e) => { e.stopPropagation(); selectLift(l.id); }}>
-            <b>{l.id}</b><span>{liftLabel(L)}</span>
-            <span className="lift-sign">AUTOMATED MATERIAL LIFT · AMR ONLY · CAP 1</span>
+            <b>{l.id}</b><span>{liftLabel(L, tr, label)}</span>
+            <span className="lift-sign">{tr("AUTOMATED MATERIAL LIFT · AMR ONLY · CAP 1")}</span>
           </div>
         </Html>
       )}

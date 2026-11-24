@@ -1,11 +1,13 @@
+import { useI18n, type Message } from "../../i18n";
 import { useStore, type ViewTab, type SceneTool } from "../../state/store";
 import { Icon } from "../ui/primitives";
 import { Scene3D } from "../scene/Scene3D";
 import { MapView2D } from "./MapView2D";
 
-const TABS: Array<[ViewTab, string]> = [["3D", "3D VIEW"], ["MAP", "MAP VIEW"], ["TRAFFIC", "TRAFFIC VIEW"], ["HEATMAP", "HEATMAP"]];
+const TABS: Array<[ViewTab, Message]> = [["3D", "3D VIEW"], ["MAP", "MAP VIEW"], ["TRAFFIC", "TRAFFIC VIEW"], ["HEATMAP", "HEATMAP"]];
 
 export function Viewport() {
+  const { tr } = useI18n();
   const tab = useStore((s) => s.viewTab);
   const setTab = useStore((s) => s.setViewTab);
   const tool = useStore((s) => s.tool);
@@ -22,25 +24,25 @@ export function Viewport() {
   );
   return (
     <div className="viewport">
-      <div className="view-tabs">{TABS.map(([k, l]) => <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>)}</div>
+      <div className="view-tabs">{TABS.map(([k, l]) => <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{tr(l)}</button>)}</div>
       <div className="vp-toolbar">
-        <select className="sel" title="Floor" value={String(activeFloor)} onChange={(e) => { const v = e.target.value === "all" || e.target.value === "exploded" ? e.target.value as "all" | "exploded" : Number(e.target.value); setActiveFloor(v); if (v === 2) focus([31, 8, 51]); else focus([50, 0, 31]); }}>
-          <option value="all">All floors</option>
-          <option value="1">Floor 1</option>
-          <option value="2">Floor 2</option>
-          <option value="exploded">Exploded</option>
+        <select className="sel" title={tr("Floor")} value={String(activeFloor)} onChange={(e) => { const v = e.target.value === "all" || e.target.value === "exploded" ? e.target.value as "all" | "exploded" : Number(e.target.value); setActiveFloor(v); if (v === 2) focus([31, 8, 51]); else focus([50, 0, 31]); }}>
+          <option value="all">{tr("All floors")}</option>
+          <option value="1">{tr("Floor 1")}</option>
+          <option value="2">{tr("Floor 2")}</option>
+          <option value="exploded">{tr("Exploded")}</option>
         </select>
-        <button className="icon-btn" title="Reset camera" onClick={() => focus([50, 0, 31])}>{Icon.expand}</button>
-        <button className="icon-btn" title="Viewport settings">{Icon.gear}</button>
+        <button className="icon-btn" title={tr("Reset camera")} onClick={() => focus([50, 0, 31])}>{Icon.expand}</button>
+        <button className="icon-btn" title={tr("Viewport settings")}>{Icon.gear}</button>
       </div>
       {tab === "3D" ? <Scene3D /> : <MapView2D mode={tab} />}
       {tab === "3D" && (
         <div className="scene-toolbar">
-          {toolBtn("select", Icon.cursor, "Select")}
-          {toolBtn("pan", Icon.hand, "Pan (left-drag)")}
-          {toolBtn("paths", Icon.path, "Toggle paths", showPaths, togglePaths)}
-          {toolBtn("labels", Icon.tag, "Toggle labels", showLabels, toggleLabels)}
-          {toolBtn("measure", Icon.ruler, "Measure (later phase)", false, () => {})}
+          {toolBtn("select", Icon.cursor, tr("Select"))}
+          {toolBtn("pan", Icon.hand, tr("Pan (left-drag)"))}
+          {toolBtn("paths", Icon.path, tr("Toggle paths"), showPaths, togglePaths)}
+          {toolBtn("labels", Icon.tag, tr("Toggle labels"), showLabels, toggleLabels)}
+          {toolBtn("measure", Icon.ruler, tr("Measure (later phase)"), false, () => {})}
         </div>
       )}
     </div>

@@ -1,3 +1,4 @@
+import { LanguageSwitch, useI18n } from "./i18n";
 import { useEffect, useState } from "react";
 import { useStore } from "./state/store";
 import { TopBar } from "./components/shell/TopBar";
@@ -32,28 +33,31 @@ function useFitScale() {
 
 /** 後端回 RATE_LIMITED / TOO_LARGE 等訊息時的短暫提示 */
 function Notice() {
+  const { tr, label } = useI18n();
   const notice = useStore((s) => s.notice);
   const setNotice = useStore((s) => s.setNotice);
   useEffect(() => { if (!notice) return; const t = setTimeout(() => setNotice(null), Math.max(0, notice.until - Date.now())); return () => clearTimeout(t); }, [notice, setNotice]);
   if (!notice) return null;
-  return <div className={"notice " + notice.kind} onClick={() => setNotice(null)}>{notice.text}</div>;
+  return <div className={"notice " + notice.kind} onClick={() => setNotice(null)}>{tr("{0}: {1}", tr(notice.message), label(notice.detail))}</div>;
 }
 
 /** 這是 desktop 營運中心；窄螢幕（手機）整體縮到 0.3 倍根本看不清，先給提示，可選擇仍然繼續。
  *  門檻 1024：平板橫向（1024–1279）仍可用縮小版；手機一律提示。 */
 const GATE_W = 1024;
 function NarrowScreenGate({ children }: { children: React.ReactNode }) {
+  const { tr } = useI18n();
   const [dismissed, setDismissed] = useState(false);
   const [narrow, setNarrow] = useState(() => window.innerWidth < GATE_W);
   useEffect(() => { const f = () => setNarrow(window.innerWidth < GATE_W); window.addEventListener("resize", f); return () => window.removeEventListener("resize", f); }, []);
   if (narrow && !dismissed) {
     return (
       <div className="narrow-gate">
-        <div className="brand"><span className="ai">Ware</span><span>Twin</span><span className="brand-sub">Powered by Next Robotics</span></div>
-        <h2>Designed for desktop</h2>
-        <p>WareTwin is a 3D operations console that works best on screens ≥ 1280 px wide (it still runs, scaled down, from 1024 px). On a phone the interface would shrink to about a quarter of its size and become unreadable.</p>
-        <p>Open on a laptop or desktop browser for the full experience — or contact <b>Next Robotics</b> for a live demo.</p>
-        <button className="btn" onClick={() => setDismissed(true)}>Continue anyway</button>
+        <div className="brand"><span className="ai">Ware</span><span>Twin</span><span className="brand-sub">{tr("Powered by Next Robotics")}</span></div>
+        <LanguageSwitch />
+        <h2>{tr("Designed for desktop")}</h2>
+        <p>{tr("WareTwin is a 3D operations console that works best on screens ≥ 1280 px wide (it still runs, scaled down, from 1024 px). On a phone the interface would shrink to about a quarter of its size and become unreadable.")}</p>
+        <p>{tr("Open on a laptop or desktop browser for the full experience — or contact Next Robotics for a live demo.")}</p>
+        <button className="btn" onClick={() => setDismissed(true)}>{tr("Continue anyway")}</button>
       </div>
     );
   }
