@@ -16,6 +16,8 @@ BlueWMS 的仓库三维实况、历史回放和方案仿真项目。服务于自
 
 `glb/` 中的 7 个模型保存在本仓库的 [模型资产 Release](https://github.com/bluewms/waretwin/releases/tag/model-assets-2026-11-24)，文件名、大小和 SHA-256 记录在 [glb/manifest.json](glb/manifest.json)。克隆后在仓库根目录执行 `python3 scripts/fetch_models.py`，脚本会下载模型并校验完整性；已有模型执行 `python3 scripts/fetch_models.py --check` 检查，无需重复下载。本地数据库、环境配置和工作台访问令牌不纳入版本管理。
 
+已建立后端虚拟环境时，可使用项目的 Python 3.11 执行：`backend/.venv/bin/python scripts/fetch_models.py`。
+
 ## 开发方向
 
 ### 一仓一布局，货架按项目选配
