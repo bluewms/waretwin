@@ -10,13 +10,17 @@ BlueWMS 的仓库三维实况、历史回放和方案仿真项目。服务于自
 
 ## 开发与模型文件
 
-统一在 `bluewms/waretwin` 仓库维护前后端、简体中文／英文界面和 GLB 模型。原 `3Dware` 目录的语言切换及中文词库已整合；界面会读取浏览器语言，并保存手动选择。
+统一在 `bluewms/waretwin` 仓库维护前后端、简体中文／英文界面和模型清单，原始 GLB 独立保存在模型资产 Release。原 `3Dware` 目录的语言切换及中文词库已整合；界面会读取浏览器语言，并保存手动选择。
 
 本地开发使用 Node.js 20 和 Python 3.11。后端环境与启动方式见 [backend/README.md](backend/README.md)，前端在 `frontend/` 执行 `npm ci` 后使用 `npm run dev`；验证使用 `npm test` 和 `npm run build`。前端测试会调用后端 Python 环境，优先使用 `backend/.venv/`，也可通过 `PYTHON` 环境变量指定。
 
-`glb/` 中的 7 个模型保存在本仓库的 [模型资产 Release](https://github.com/bluewms/waretwin/releases/tag/model-assets-2026-11-24)，文件名、大小和 SHA-256 记录在 [glb/manifest.json](glb/manifest.json)。克隆后在仓库根目录执行 `python3 scripts/fetch_models.py`，脚本会下载模型并校验完整性；已有模型执行 `python3 scripts/fetch_models.py --check` 检查，无需重复下载。本地数据库、环境配置和工作台访问令牌不纳入版本管理。
+**日常开发不需要下载 GLB。** 当前货架、AGV、提升机和输送线使用程序化模型；克隆、拉取源码、启动、测试、构建及 CI 均不依赖原始 GLB。先用内置简模开发设施管理、容器绑定、点位和调度耗时，再按需要接入具体车型。
 
-已建立后端虚拟环境时，可使用项目的 Python 3.11 执行：`backend/.venv/bin/python scripts/fetch_models.py`。
+7 个原始 GLB 保存在本仓库的 [模型资产 Release](https://github.com/bluewms/waretwin/releases/tag/model-assets-2026-11-24)，文件名、大小和 SHA-256 记录在 [glb/manifest.json](glb/manifest.json)。这些原文件用于归档和后续模型处理，默认不加载、不打入前端构建，也不要求每台开发机全量下载。已下载的文件可以保留为可选缓存。
+
+只有进行模型优化或真实车型验证时，才按文件下载，例如 `python3 scripts/fetch_models.py --only SFL-CBD20.glb`；已建立后端虚拟环境时可用 `backend/.venv/bin/python` 替代 `python3`。下载脚本会校验文件完整性。手工排查时可执行 `python3 scripts/fetch_models.py --check --only SFL-CBD20.glb`，无需把完整哈希检查放进日常开发流程。Git 同步核对默认只比较提交和受版本管理的文件。
+
+需要真实车型外观时，再使用经过减面、材质与贴图优化的轻量模型，按当前场景需要加载并复用资源；优化保持米制尺寸和必要的可运动部件。模型处理要求见 [后台设施与容器管理开发说明](plan/后台设施与容器管理开发说明.md)。本地数据库、环境配置和工作台访问令牌不纳入版本管理。
 
 ## 开发方向
 
