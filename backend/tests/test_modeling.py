@@ -300,3 +300,27 @@ def test_expand_50k_under_budget():
     elapsed = time.perf_counter() - start
     assert len(r['slots']) >= 50_000
     assert elapsed < 3, elapsed
+
+
+# ── 列号起始与空间索引 ───────────────────────────────────
+def test_column_start_offsets_names():
+    r = M.expand_rack_group({**GROUP, 'groups': 1, 'column_start': 5}, BOX)
+    assert [s['name'] for s in r['slots'][:3]] == ['N-01-05-1', 'N-01-05-2', 'N-01-05-3']
+    assert r['columns'][-1]['column'] == 6
+    with pytest.raises(ValueError):
+        M.expand_rack_group({**GROUP, 'column_start': 0}, BOX)
+
+
+def test_spatial_index_matches_brute_force():
+    import random
+    rnd = random.Random(7)
+    quads = [M.footprint(rnd.uniform(0, 200), rnd.uniform(0, 200), rnd.choice([0, 30, 90]), rnd.uniform(0.5, 4), rnd.uniform(0.5, 4))
+             for _ in range(10_000)]
+    index = M.SpatialIndex(2.0)
+    for i, q in enumerate(quads):
+        index.add(q, i)
+    for _ in range(200):
+        probe = M.footprint(rnd.uniform(0, 200), rnd.uniform(0, 200), 15, 2, 1, 0.1)
+        brute = sorted(i for i, q in enumerate(quads) if M.quads_overlap(probe, q))
+        fast = sorted(tag for q, tag in index.query(probe) if M.quads_overlap(probe, q))
+        assert brute == fast

@@ -26,7 +26,7 @@ export interface RackSpec {
   has_bottom: boolean; has_boards: boolean;
 }
 export interface RackGroupSpec extends RackSpec {
-  prefix: string; row: number; origin: P2; rotation?: number; elevation?: number; gap?: number;
+  prefix: string; row: number; column_start?: number; origin: P2; rotation?: number; elevation?: number; gap?: number;
 }
 export interface GroundBatchSpec {
   prefix: string; origin: P2; rotation?: number; width: number; depth: number; rows: number; cols: number;
@@ -288,6 +288,7 @@ function originOf(origin: unknown): P2 {
 
 export function expandRackGroup(group: RackGroupSpec, container: ContainerSize, vehicle?: VehicleSize | null) {
   const prefix = prefixOf(group?.prefix), row = positiveInt('row', group.row);
+  const columnStart = positiveInt('column_start', group.column_start ?? 1);
   const [ox, oz] = originOf(group.origin);
   const rotation = num('rotation', group.rotation ?? 0), cs = cosSin(rotation);
   const elevation = num('elevation', group.elevation ?? 0), gap = nonNegative('gap', group.gap ?? DEFAULT_GAP);
@@ -301,7 +302,7 @@ export function expandRackGroup(group: RackGroupSpec, container: ContainerSize, 
   const supports = levelSupportHeights(group.height, group.levels, group.has_bottom, group.has_boards);
   const slots: RackSlot[] = [], columns: StopColumn[] = [];
   xs.forEach((x, i) => {
-    const col = i + 1, [wx, wz] = apply(ox, oz, cs, x, D / 2), gi = Math.floor(i / perGroup) + 1;
+    const col = columnStart + i, [wx, wz] = apply(ox, oz, cs, x, D / 2), gi = Math.floor(i / perGroup) + 1;
     supports.forEach((sup, j) => slots.push({ name: rackSlotName(prefix, row, col, j + 1), column: col, level: j + 1,
       group: gi, center: [wx, elevation + sup + ch / 2, wz], support_height: sup }));
     columns.push(column(ox, oz, cs, rotation, D, x, vw, vd, gap, { column: col }));
@@ -331,4 +332,32 @@ export function expandGroundBatch(batch: GroundBatchSpec, container: ContainerSi
   });
   const totalDepth = rows * D + (rows - 1) * aisle;
   return { slots, columns, cells, outline: quad(ox, oz, cs, 0, 0, cols * W, totalDepth), issues: groundIssues(W, D, container) };
+}
+
+// ── 空间索引：可用侧判断时只与附近外框比较 ───────────────────
+/** 均匀网格索引。add 登记凸多边形外框，query 返回与给定外框包围盒相交的已登记项（含 tag）。 */
+export class SpatialIndex<T = unknown> {
+  readonly cell: number;
+  readonly items: [P2[], T][] = [];
+  private buckets = new Map<string, number[]>();
+  constructor(cell = 2.0) { this.cell = positive('cell', cell); }
+  private keys(quad: P2[]): string[] {
+    const xs = quad.map(p => p[0]), zs = quad.map(p => p[1]), c = this.cell, out: string[] = [];
+    for (let i = Math.floor(Math.min(...xs) / c); i <= Math.floor(Math.max(...xs) / c); i++)
+      for (let j = Math.floor(Math.min(...zs) / c); j <= Math.floor(Math.max(...zs) / c); j++) out.push(`${i},${j}`);
+    return out;
+  }
+  add(quad: P2[], tag: T): void {
+    const index = this.items.length;
+    this.items.push([quad, tag]);
+    for (const key of this.keys(quad)) {
+      const bucket = this.buckets.get(key);
+      if (bucket) bucket.push(index); else this.buckets.set(key, [index]);
+    }
+  }
+  query(quad: P2[]): [P2[], T][] {
+    const found = new Set<number>();
+    for (const key of this.keys(quad)) for (const i of this.buckets.get(key) ?? []) found.add(i);
+    return [...found].sort((a, b) => a - b).map(i => this.items[i]);
+  }
 }

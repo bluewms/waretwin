@@ -1,4 +1,4 @@
-import type { WarehouseLayout } from "../layout/types";
+import type { ContainerTemplate, EquipmentCategory, WarehouseLayout } from "../layout/types";
 
 export interface Warehouse {
   id: string;
@@ -15,16 +15,23 @@ export interface LayoutRevision {
   created_at: string;
 }
 
+export interface LayoutIssue {
+  path: string; code: string; message: string; severity: 'error' | 'warning';
+  object_id?: string; count?: number; names?: string[]; level?: number;
+}
+
 export class WorkspaceError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public issues: LayoutIssue[] = []) {
     super(message);
   }
 }
 
+export type ContainerInput = Omit<ContainerTemplate, 'id' | 'created_at' | 'updated_at'>;
+
 export interface LayoutValidation {
   version: number;
   valid: boolean;
-  issues: { path: string; code: string; message: string; severity: 'error' }[];
+  issues: LayoutIssue[];
 }
 
 /** Tokens remain in memory; callers clear their client on sign-out. */
@@ -39,10 +46,13 @@ export function workspaceClient(token: string) {
       body: body === undefined ? undefined : JSON.stringify(body),
       cache: "no-store",
     });
-    const data = await response.json().catch(() => null);
+    const data = response.status === 204 ? null : await response.json().catch(() => null);
     if (!response.ok) {
+      const detail = data?.detail;
+      if (detail && typeof detail === "object" && Array.isArray(detail.issues))
+        throw new WorkspaceError(response.status, String(detail.message ?? "Layout validation failed"), detail.issues);
       throw new WorkspaceError(response.status,
-        typeof data?.detail === "string" ? data.detail : "Workspace request failed");
+        typeof detail === "string" ? detail : Array.isArray(detail) ? String(detail[0]?.msg ?? "Invalid request") : "Workspace request failed");
     }
     return data as T;
   }
@@ -71,6 +81,12 @@ export function workspaceClient(token: string) {
       request<LayoutRevision>(`${revisionPath(revision.warehouse_id, revision.id)}/publish`, "POST", {
         expected_version: revision.version,
       }),
+    containers: () => request<ContainerTemplate[]>("/containers"),
+    createContainer: (input: ContainerInput) => request<ContainerTemplate>("/containers", "POST", input),
+    updateContainer: (id: string, input: ContainerInput) =>
+      request<ContainerTemplate>(`/containers/${encodeURIComponent(id)}`, "PUT", input),
+    deleteContainer: (id: string) => request<null>(`/containers/${encodeURIComponent(id)}`, "DELETE"),
+    equipmentCatalog: () => request<{ version: number; categories: EquipmentCategory[] }>("/equipment-catalog"),
     fork: (revision: LayoutRevision) =>
       request<LayoutRevision>(`${revisionPath(revision.warehouse_id, revision.id)}/fork`, "POST"),
   };

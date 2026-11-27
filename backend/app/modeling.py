@@ -292,6 +292,7 @@ def _quad(ox, oz, cs, x0, z0, x1, z1) -> list[Point]:
 
 def expand_rack_group(group: dict, container: dict, vehicle: Optional[dict] = None) -> dict:
     prefix, row = _prefix(group.get('prefix')), _positive_int('row', group.get('row'))
+    column_start = _positive_int('column_start', group.get('column_start', 1))
     origin = group.get('origin') or [None, None]
     ox, oz = _number('origin.x', origin[0]), _number('origin.z', origin[1])
     rotation = _number('rotation', group.get('rotation', 0))
@@ -310,7 +311,7 @@ def expand_rack_group(group: dict, container: dict, vehicle: Optional[dict] = No
     slots, columns = [], []
     half_h = ch / 2
     for i, x in enumerate(xs):
-        col = i + 1
+        col = column_start + i
         wx, wz = _apply(ox, oz, cs, x, D / 2)
         gi = i // per_group + 1
         for j, sup in enumerate(supports):
@@ -350,3 +351,32 @@ def expand_ground_batch(batch: dict, container: dict, vehicle: Optional[dict] = 
     return {'slots': slots, 'columns': columns, 'cells': cells,
             'outline': _quad(ox, oz, cs, 0, 0, cols * W, total_depth), 'issues': ground_issues(W, D, container)}
 
+
+
+# ── 空间索引：可用侧判断时只与附近外框比较 ───────────────────
+class SpatialIndex:
+    """均匀网格索引。add 登记凸多边形外框，query 返回与给定外框包围盒相交的已登记项（含 tag）。"""
+
+    def __init__(self, cell: float = 2.0) -> None:
+        self.cell = _positive('cell', cell)
+        self.items: list[tuple[list, Any]] = []
+        self.buckets: dict[tuple[int, int], list[int]] = {}
+
+    def _keys(self, quad: list):
+        xs, zs = [p[0] for p in quad], [p[1] for p in quad]
+        c = self.cell
+        for i in range(math.floor(min(xs) / c), math.floor(max(xs) / c) + 1):
+            for j in range(math.floor(min(zs) / c), math.floor(max(zs) / c) + 1):
+                yield (i, j)
+
+    def add(self, quad: list, tag: Any = None) -> None:
+        index = len(self.items)
+        self.items.append((quad, tag))
+        for key in self._keys(quad):
+            self.buckets.setdefault(key, []).append(index)
+
+    def query(self, quad: list) -> list[tuple[list, Any]]:
+        found: set[int] = set()
+        for key in self._keys(quad):
+            found.update(self.buckets.get(key, ()))
+        return [self.items[i] for i in sorted(found)]

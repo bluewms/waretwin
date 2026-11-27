@@ -145,3 +145,24 @@ describe('expansion', () => {
     expect(performance.now() - t).toBeLessThan(1000);
   });
 });
+
+describe('column start and spatial index', () => {
+  test('column_start offsets names', () => {
+    const r = M.expandRackGroup({ prefix: 'N', row: 1, column_start: 5, origin: [5, 5], rotation: 0, center_spacing: 2.5, groups: 1,
+      depth: 1.2, height: 3, levels: 3, has_bottom: false, has_boards: true }, { width: 1, depth: 1, height: 0.8 });
+    expect(r.slots.slice(0, 3).map(s => s.name)).toEqual(['N-01-05-1', 'N-01-05-2', 'N-01-05-3']);
+    expect(r.columns[r.columns.length - 1].column).toBe(6);
+  });
+  test('spatial index matches brute force', () => {
+    let seed = 7; const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+    const quads = Array.from({ length: 10000 }, () => M.footprint(rnd() * 200, rnd() * 200, [0, 30, 90][Math.floor(rnd() * 3)], 0.5 + rnd() * 3.5, 0.5 + rnd() * 3.5));
+    const index = new M.SpatialIndex<number>(2);
+    quads.forEach((q, i) => index.add(q, i));
+    for (let k = 0; k < 200; k++) {
+      const probe = M.footprint(rnd() * 200, rnd() * 200, 15, 2, 1, 0.1);
+      const brute = quads.map((q, i) => M.quadsOverlap(probe, q) ? i : -1).filter(i => i >= 0);
+      const fast = index.query(probe).filter(([q]) => M.quadsOverlap(probe, q)).map(([, t]) => t).sort((a, b) => a - b);
+      expect(fast).toEqual(brute);
+    }
+  });
+});

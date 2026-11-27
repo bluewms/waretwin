@@ -14,6 +14,8 @@ from .layout_templates import (conveyor_loop, multifloor_with_lift, racking_bays
                                assert_template_valid)
 from .layout_validation import validate_layout
 from .layout_import import import_dxf, import_pdf_plan, calibrate_image
+from .layout_containers import ContainerTemplates
+from .layout_facilities import containers_for, facility_issues, load_catalog, publish_prepare, referenced_containers
 
 
 router = APIRouter(prefix='/api/workspace', tags=['Customer layouts'])
@@ -44,6 +46,29 @@ def get_runs() -> LayoutRuns:
 
 
 Runs = Annotated[LayoutRuns, Depends(get_runs)]
+
+
+@lru_cache
+def get_templates() -> ContainerTemplates:
+    """Organisation-level container templates share the layout SQLite file."""
+    return ContainerTemplates(os.environ.get('TWIN_LAYOUT_DB', 'layouts.db'))
+
+
+Templates = Annotated[ContainerTemplates, Depends(get_templates)]
+
+
+class ContainerTemplateBody(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    type: str
+    color: str | None = None
+    width: float = Field(gt=0, allow_inf_nan=False)
+    depth: float = Field(gt=0, allow_inf_nan=False)
+    height: float = Field(gt=0, allow_inf_nan=False)
+
+
+def _document_containers(templates: ContainerTemplates, organization_id: str, document: dict, published: bool) -> dict:
+    current = templates.get_many(organization_id, referenced_containers(document))
+    return containers_for(document, current, published)
 
 
 class NewRun(BaseModel):
@@ -138,16 +163,54 @@ def save(warehouse_id: str, revision_id: str, body: SaveDraft, user: User, store
 
 
 @router.post('/warehouses/{warehouse_id}/revisions/{revision_id}/publish', status_code=201)
-def publish(warehouse_id: str, revision_id: str, body: PublishDraft, user: User, store: Store):
-    return operation(store.publish, user['organization_id'], warehouse_id, revision_id,
-                     body.expected_version)
+def publish(warehouse_id: str, revision_id: str, body: PublishDraft, user: User, store: Store, templates: Templates):
+    org = user['organization_id']
+
+    def prepare(document: dict):
+        return publish_prepare(document, _document_containers(templates, org, document, published=False))
+    return operation(store.publish, org, warehouse_id, revision_id, body.expected_version, prepare)
 
 
 @router.get('/warehouses/{warehouse_id}/revisions/{revision_id}/validation')
-def validation(warehouse_id: str, revision_id: str, user: User, store: Store):
-    current = operation(store.get_revision, user['organization_id'], warehouse_id, revision_id)
-    issues = validate_geometry(current['document'])
-    return {'version': current['version'], 'valid': not issues, 'issues': issues}
+def validation(warehouse_id: str, revision_id: str, user: User, store: Store, templates: Templates):
+    org = user['organization_id']
+    current = operation(store.get_revision, org, warehouse_id, revision_id)
+    document = current['document']
+    issues = validate_geometry(document)
+    try:
+        containers = _document_containers(templates, org, document, current['state'] == 'published')
+        issues = issues + facility_issues(document, containers)
+    except Exception as exc:  # facility checks must never hide geometry results
+        issues.append({'path': '', 'code': 'facility_check_failed', 'message': str(exc), 'severity': 'error'})
+    errors = [i for i in issues if i.get('severity', 'error') == 'error']
+    return {'version': current['version'], 'valid': not errors, 'issues': issues}
+
+
+# ── Organisation container templates & equipment catalog (facilities) ──
+
+@router.get('/containers')
+def list_containers(user: User, templates: Templates):
+    return templates.list(user['organization_id'])
+
+
+@router.post('/containers', status_code=201)
+def create_container(body: ContainerTemplateBody, user: User, templates: Templates):
+    return operation(templates.create, user['organization_id'], body.model_dump())
+
+
+@router.put('/containers/{template_id}')
+def update_container(template_id: str, body: ContainerTemplateBody, user: User, templates: Templates):
+    return operation(templates.update, user['organization_id'], template_id, body.model_dump())
+
+
+@router.delete('/containers/{template_id}', status_code=204)
+def delete_container(template_id: str, user: User, templates: Templates):
+    operation(templates.delete, user['organization_id'], template_id)
+
+
+@router.get('/equipment-catalog')
+def equipment_catalog(user: User):
+    return load_catalog()
 
 
 @router.post('/warehouses/{warehouse_id}/revisions/{revision_id}/fork', status_code=201)

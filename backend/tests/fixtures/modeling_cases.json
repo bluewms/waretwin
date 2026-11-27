@@ -759,6 +759,7 @@
    {
     "prefix": "R",
     "row": 3,
+    "column_start": 4,
     "origin": [
      4,
      6
@@ -787,80 +788,80 @@
   "expected": {
    "slots": [
     {
-     "name": "R-03-01-1",
-     "column": 1,
-     "level": 1,
-     "group": 1,
-     "center": [
-      4.360085296108588,
-      5.04,
-      6.842980638748108
-     ],
-     "support_height": 0.14
-    },
-    {
-     "name": "R-03-01-2",
-     "column": 1,
-     "level": 2,
-     "group": 1,
-     "center": [
-      4.360085296108588,
-      6.140000000000001,
-      6.842980638748108
-     ],
-     "support_height": 1.24
-    },
-    {
-     "name": "R-03-02-1",
-     "column": 2,
-     "level": 1,
-     "group": 1,
-     "center": [
-      5.341580753730952,
-      5.04,
-      7.409647305414775
-     ],
-     "support_height": 0.14
-    },
-    {
-     "name": "R-03-02-2",
-     "column": 2,
-     "level": 2,
-     "group": 1,
-     "center": [
-      5.341580753730952,
-      6.140000000000001,
-      7.409647305414775
-     ],
-     "support_height": 1.24
-    },
-    {
-     "name": "R-03-03-1",
-     "column": 3,
-     "level": 1,
-     "group": 2,
-     "center": [
-      6.525148805569685,
-      5.04,
-      8.092980638748108
-     ],
-     "support_height": 0.14
-    },
-    {
-     "name": "R-03-03-2",
-     "column": 3,
-     "level": 2,
-     "group": 2,
-     "center": [
-      6.525148805569685,
-      6.140000000000001,
-      8.092980638748108
-     ],
-     "support_height": 1.24
-    },
-    {
      "name": "R-03-04-1",
      "column": 4,
+     "level": 1,
+     "group": 1,
+     "center": [
+      4.360085296108588,
+      5.04,
+      6.842980638748108
+     ],
+     "support_height": 0.14
+    },
+    {
+     "name": "R-03-04-2",
+     "column": 4,
+     "level": 2,
+     "group": 1,
+     "center": [
+      4.360085296108588,
+      6.140000000000001,
+      6.842980638748108
+     ],
+     "support_height": 1.24
+    },
+    {
+     "name": "R-03-05-1",
+     "column": 5,
+     "level": 1,
+     "group": 1,
+     "center": [
+      5.341580753730952,
+      5.04,
+      7.409647305414775
+     ],
+     "support_height": 0.14
+    },
+    {
+     "name": "R-03-05-2",
+     "column": 5,
+     "level": 2,
+     "group": 1,
+     "center": [
+      5.341580753730952,
+      6.140000000000001,
+      7.409647305414775
+     ],
+     "support_height": 1.24
+    },
+    {
+     "name": "R-03-06-1",
+     "column": 6,
+     "level": 1,
+     "group": 2,
+     "center": [
+      6.525148805569685,
+      5.04,
+      8.092980638748108
+     ],
+     "support_height": 0.14
+    },
+    {
+     "name": "R-03-06-2",
+     "column": 6,
+     "level": 2,
+     "group": 2,
+     "center": [
+      6.525148805569685,
+      6.140000000000001,
+      8.092980638748108
+     ],
+     "support_height": 1.24
+    },
+    {
+     "name": "R-03-07-1",
+     "column": 7,
      "level": 1,
      "group": 2,
      "center": [
@@ -871,8 +872,8 @@
      "support_height": 0.14
     },
     {
-     "name": "R-03-04-2",
-     "column": 4,
+     "name": "R-03-07-2",
+     "column": 7,
      "level": 2,
      "group": 2,
      "center": [
@@ -885,7 +886,7 @@
    ],
    "columns": [
     {
-     "column": 1,
+     "column": 4,
      "stops": {
       "above": {
        "position": [
@@ -942,7 +943,7 @@
      }
     },
     {
-     "column": 2,
+     "column": 5,
      "stops": {
       "above": {
        "position": [
@@ -999,7 +1000,7 @@
      }
     },
     {
-     "column": 3,
+     "column": 6,
      "stops": {
       "above": {
        "position": [
@@ -1056,7 +1057,7 @@
      }
     },
     {
-     "column": 4,
+     "column": 7,
      "stops": {
       "above": {
        "position": [

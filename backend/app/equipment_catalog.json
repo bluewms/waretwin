@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "categories": [
+    {"code": "AGV-LATENT", "name": "潜伏顶升 AGV（内置）", "kind": "vehicle", "model": "builtin:amr",
+     "size": {"width": 0.95, "depth": 0.68, "height": 0.4},
+     "defaults": {"timing": {"mode": "speed", "speed_mps": 1.5},
+                  "vehicle": {"pick_s": 10, "drop_s": 10, "lift_speed_mps": null, "low_battery_pct": 20}}},
+    {"code": "SFL-CBD20", "name": "SFL-CBD20 叉车 AGV", "kind": "vehicle", "model": "builtin:forklift",
+     "size": {"width": 2.0, "depth": 1.0, "height": 2.2},
+     "defaults": {"timing": {"mode": "speed", "speed_mps": 1.0},
+                  "vehicle": {"pick_s": 15, "drop_s": 12, "lift_speed_mps": 0.2, "low_battery_pct": 20}}},
+    {"code": "LIFT", "name": "提升机（内置）", "kind": "lift", "model": "builtin:lift",
+     "size": {"width": 2.8, "depth": 3.6, "height": 6.0},
+     "defaults": {"timing": {"mode": "speed", "speed_mps": 0.5}},
+     "work_points": [{"key": "door", "label": "门口", "offset": [0, -2.3], "heading": 90}]},
+    {"code": "CONVEYOR", "name": "输送线（内置）", "kind": "conveyor", "model": "builtin:conveyor",
+     "size": {"width": 6.0, "depth": 1.0, "height": 0.8},
+     "defaults": {"timing": {"mode": "speed", "speed_mps": 0.3}},
+     "work_points": [{"key": "in", "label": "入口", "offset": [-3.6, 0], "heading": 0},
+                     {"key": "out", "label": "出口", "offset": [3.6, 0], "heading": 0}]},
+    {"code": "CHARGER", "name": "充电桩", "kind": "station", "model": "builtin:charger",
+     "size": {"width": 0.9, "depth": 0.5, "height": 1.2},
+     "defaults": {"timing": {"mode": "production", "production_value": 2, "production_unit": "h"}},
+     "work_points": [{"key": "dock", "label": "对接点", "offset": [0, -1.0], "heading": 0}]},
+    {"code": "WRAPPER", "name": "缠绕机", "kind": "station", "model": "builtin:box",
+     "size": {"width": 2.4, "depth": 2.4, "height": 2.5},
+     "defaults": {"timing": {"mode": "production", "production_value": 5, "production_unit": "min"}},
+     "work_points": [{"key": "in", "label": "上料点", "offset": [0, -2.0], "heading": 0},
+                     {"key": "out", "label": "下料点", "offset": [0, 2.0], "heading": 0}]}
+  ]
+}

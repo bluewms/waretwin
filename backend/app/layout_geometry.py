@@ -9,6 +9,9 @@ from shapely.ops import unary_union
 from shapely.validation import explain_validity
 
 
+# 1.1 adds rack_groups, ground_batches, equipment, stop_gap and container_snapshots (all optional).
+SUPPORTED_SCHEMAS = ('1.0', '1.1')
+
 COLLECTIONS = ('zones', 'docks', 'racks', 'conveyors', 'stations',
                'charging_stations', 'parking', 'restricted_areas', 'walkways',
                'cameras', 'sensors', 'locations', 'obstacles', 'lifts')
@@ -59,8 +62,8 @@ def validate_geometry(document: dict) -> list[dict]:
     if not isinstance(document, dict):
         issue('', 'document', 'Layout must be an object')
         return issues
-    if document.get('schema_version') != '1.0':
-        issue('schema_version', 'schema_version', 'Supported layout schema is 1.0')
+    if document.get('schema_version') not in SUPPORTED_SCHEMAS:
+        issue('schema_version', 'schema_version', 'Supported layout schemas are 1.0 and 1.1')
     for key in ('id', 'name'):
         if not isinstance(document.get(key), str) or not document[key].strip():
             issue(key, 'required', 'A nonempty string is required')

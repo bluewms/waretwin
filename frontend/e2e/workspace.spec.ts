@@ -59,7 +59,7 @@ test("D4-D9 rack lifecycle: add, drag, rotate, duplicate, delete, undo/redo, sav
   await createWarehouse(page, "QA-Lifecycle", 40, 30, 8);
 
   // D4 add rack — default 4x3 rack at (2,2), depth 1.2
-  await page.getByRole("button", { name: "Add rack" }).click();
+  await page.getByRole("button", { name: "Add legacy rack" }).click();
   const rackRect = page.locator("svg rect:has(title)");
   await expect(rackRect).toHaveCount(1);
   // mobile: shrink the plan so the whole floor fits the 375px viewport before dragging
@@ -139,11 +139,11 @@ test("D10 publish: invalid 422 surfaces in UI, then fix and publish valid", asyn
   await createWarehouse(page, "QA-Publish");
 
   // Make the layout invalid: shrink building width to 2 while rack sits at x=2 (default rack is 4m wide)
-  await page.getByRole("button", { name: "Add rack" }).click();
+  await page.getByRole("button", { name: "Add legacy rack" }).click();
   await expect(page.locator(".wt-object-list button")).toHaveCount(1);
   const widthInput = page.locator('.wt-properties:has-text("Building") label:has-text("width") input');
   await widthInput.fill("2"); // rack (x=2..6) now outside the 2m building
-  // "Check saved geometry" only validates SAVED revision — save first, then publish via API
+  // "Check saved layout" only validates SAVED revision — save first, then publish via API
   await page.getByLabel("Save draft").click();
   await expect(page.getByRole("status")).toHaveText("Saved");
   const revisionId = await page.getByLabel("Revision", { exact: true }).inputValue();
@@ -156,10 +156,10 @@ test("D10 publish: invalid 422 surfaces in UI, then fix and publish valid", asyn
   expect(pub.status()).toBe(422);
   const issues = (await pub.json())["detail"]["issues"] as { path: string; code: string }[];
   expect(issues.length).toBeGreaterThan(0);
-  // Now surface the 422 in the UI through the validation endpoint (Check saved geometry button)
-  await page.getByLabel("Check saved geometry").click();
+  // Now surface the 422 in the UI through the validation endpoint (Check saved layout button)
+  await page.getByLabel("Check saved layout").click();
   await expect(page.locator(".wt-validation")).toBeVisible();
-  await expect(page.locator(".wt-validation h2")).toContainText(/geometry issue/i);
+  await expect(page.locator(".wt-validation h2")).toContainText(/errors/i);
   await page.screenshot({ path: shot("D10a_" + test.info().project.name) });
 
   // Fix: delete rack (select it from object list), save, validate clean, publish OK
@@ -173,7 +173,7 @@ test("D10 publish: invalid 422 surfaces in UI, then fix and publish valid", asyn
     headers: { Authorization: "Bearer " + provisioned.token },
   });
   expect(pub2.status()).toBe(201);
-  await page.getByLabel("Check saved geometry").click();
+  await page.getByLabel("Check saved layout").click();
   await expect(page.locator(".wt-validation h2")).toContainText(/passed/i);
   await page.screenshot({ path: shot("D10b_" + test.info().project.name) });
 });
@@ -207,7 +207,7 @@ test("D13 export layout JSON", async ({ page }) => {
 test("D14 unsaved-changes guard on sign out", async ({ page }) => {
   await createWarehouse(page, "QA-Guard");
   // make a dirty edit: rotate? simpler — add rack (dirty) then sign out
-  await page.getByRole("button", { name: "Add rack" }).click();
+  await page.getByRole("button", { name: "Add legacy rack" }).click();
   await expect(page.getByRole("status")).toHaveText("Unsaved changes");
   page.once("dialog", (d) => d.dismiss()); // Cancel keeps edits
   await page.getByLabel("Sign out").click();

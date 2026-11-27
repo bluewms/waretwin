@@ -14,18 +14,7 @@ from .layout_geometry import validate_geometry
 from .layout_validation import validate_layout
 
 
-class LayoutNotFound(LookupError):
-    pass
-
-
-class LayoutConflict(ValueError):
-    pass
-
-
-class LayoutInvalid(ValueError):
-    def __init__(self, issues):
-        super().__init__('Layout validation failed')
-        self.issues = issues
+from .layout_errors import LayoutConflict, LayoutInvalid, LayoutNotFound  # noqa: F401  (re-exported)
 
 
 class LayoutStore:
@@ -167,7 +156,9 @@ class LayoutStore:
         return result
 
     def publish(self, organization_id: str, warehouse_id: str, revision_id: str,
-                expected_version: int) -> dict:
+                expected_version: int, prepare=None) -> dict:
+        """Publish a draft. ``prepare(document) -> (errors, document)`` may add facility
+        errors and return the document to freeze (e.g. with container snapshots)."""
         # Reserve the write transaction so validation and publication see one version.
         published_id = uuid.uuid4().hex
         with self.connection() as db:
@@ -178,17 +169,17 @@ class LayoutStore:
                 (revision_id, warehouse_id, expected_version)).fetchone()
             if draft is None:
                 raise LayoutConflict('Draft changed or does not exist')
-            issues = validate_geometry(json.loads(draft['document']))
-            report = validate_layout(json.loads(draft['document']))
+            document = json.loads(draft['document'])
+            issues = validate_geometry(document)
+            report = validate_layout(document)
             issues = issues + [dict(i, gate='runtime') for i in report['issues'] if i['severity'] == 'error']
+            if prepare is not None:
+                extra, document = prepare(document)
+                issues = issues + [dict(i, gate='facilities') for i in extra]
             if issues:
                 raise LayoutInvalid(issues)
-            changed = db.execute("""INSERT INTO layout_revisions(id,warehouse_id,state,document)
-                SELECT ?,warehouse_id,'published',document FROM layout_revisions
-                WHERE id=? AND warehouse_id=? AND state='draft' AND version=?""",
-                (published_id, revision_id, warehouse_id, expected_version)).rowcount
-            if changed != 1:
-                raise LayoutConflict('Draft changed or does not exist')
+            db.execute("""INSERT INTO layout_revisions(id,warehouse_id,state,document)
+                VALUES(?,?,'published',?)""", (published_id, warehouse_id, self._encode(document)))
         return self.get_revision(organization_id, warehouse_id, published_id)
 
     def fork_draft(self, organization_id: str, warehouse_id: str, revision_id: str) -> dict:
